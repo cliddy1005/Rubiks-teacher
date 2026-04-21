@@ -3,18 +3,33 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>CubeForge — Rubik's Cube Algorithm Trainer</title>
+<title>RubIQ Solver — Rubik's Cube Algorithm Trainer</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#ff6b35">
+<meta name="theme-color" content="#6c63ff">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="CubeForge">
+<meta name="apple-mobile-web-app-title" content="RubIQ Solver">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+
 <style>
 :root {
+  --bg: #0a0a0f;
+  --surface: #12121a;
+  --surface2: #1a1a28;
+  --border: #2a2a3d;
+  --text: #e8e8f0;
+  --text-dim: #8888a0;
+  --accent: #6c63ff;
+  --accent2: #8b5cf6;
+  --accent-glow: rgba(108,99,255,0.3);
+  --green: #2ec4b6;
+  --cube-top: 0px;
+}
+
+html[data-theme="inferno"] {
   --bg: #0a0a0f;
   --surface: #12121a;
   --surface2: #1a1a28;
@@ -25,15 +40,53 @@
   --accent2: #ff9f1c;
   --accent-glow: rgba(255,107,53,0.3);
   --green: #2ec4b6;
-  --cube-top: 0px; /* set by JS: header height */
 }
+
+html[data-theme="neo"] {
+  --bg: #0a0b14;
+  --surface: #101627;
+  --surface2: #16203a;
+  --border: #243256;
+  --text: #edf2ff;
+  --text-dim: #93a4c6;
+  --accent: #6c63ff;
+  --accent2: #22d3ee;
+  --accent-glow: rgba(108,99,255,0.3);
+  --green: #34d399;
+}
+
+html[data-theme="volt"] {
+  --bg: #08110c;
+  --surface: #0e1b14;
+  --surface2: #13271d;
+  --border: #244634;
+  --text: #ebfff1;
+  --text-dim: #97b8a1;
+  --accent: #7dff7a;
+  --accent2: #29d17c;
+  --accent-glow: rgba(125,255,122,0.28);
+  --green: #7dff7a;
+}
+
+html[data-theme="rose"] {
+  --bg: #120b12;
+  --surface: #1b121b;
+  --surface2: #29192a;
+  --border: #453148;
+  --text: #fff0fb;
+  --text-dim: #c5a4c2;
+  --accent: #ff4fa3;
+  --accent2: #c084fc;
+  --accent-glow: rgba(255,79,163,0.28);
+  --green: #7df9c1;
+}
+
 *{margin:0;padding:0;box-sizing:border-box;}
 html{scroll-behavior:smooth;}
 body{
   font-family:'Outfit',sans-serif;
   background:var(--bg);color:var(--text);
   min-height:100vh;overflow-x:hidden;
-  /* prevent iOS overscroll bounce from revealing white */
   overscroll-behavior:none;
 }
 body::before{
@@ -46,26 +99,57 @@ body::before{
 header{
   padding:12px 20px;
   display:flex;align-items:center;justify-content:space-between;
+  gap:12px;
   border-bottom:1px solid var(--border);
   position:sticky;top:0;
   background:rgba(10,10,15,0.94);
   backdrop-filter:blur(20px);z-index:200;
 }
-.logo{display:flex;align-items:center;gap:10px;}
+.logo{display:flex;align-items:center;gap:10px;min-width:0;}
 .logo-icon{
   width:28px;height:28px;
   background:linear-gradient(135deg,var(--accent),var(--accent2));
   border-radius:6px;
   display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
-  gap:2px;padding:3px;transform:rotate(-10deg);
+  gap:2px;padding:3px;transform:rotate(-10deg);flex-shrink:0;
 }
 .logo-icon span{background:rgba(0,0,0,0.3);border-radius:1px;}
 .logo h1{
   font-size:1.15rem;font-weight:900;letter-spacing:-0.5px;
   background:linear-gradient(135deg,var(--accent),var(--accent2));
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  white-space:nowrap;
 }
-nav{display:flex;gap:3px;background:var(--surface);padding:3px;border-radius:10px;border:1px solid var(--border);}
+
+.header-actions{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;
+}
+.theme-picker{
+  display:flex;align-items:center;gap:8px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  padding:6px 8px;border-radius:10px;
+}
+.theme-picker label{
+  font-size:0.72rem;font-weight:700;color:var(--text-dim);white-space:nowrap;
+}
+.theme-select{
+  font-family:'Outfit',sans-serif;
+  background:var(--surface2);
+  color:var(--text);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:6px 10px;
+  font-size:0.76rem;
+  font-weight:600;
+  outline:none;
+  cursor:pointer;
+}
+
+nav{
+  display:flex;gap:3px;background:var(--surface);
+  padding:3px;border-radius:10px;border:1px solid var(--border);
+}
 nav button{
   font-family:'Outfit',sans-serif;
   padding:6px 14px;border:none;background:transparent;
@@ -75,11 +159,7 @@ nav button{
 nav button.active{background:var(--accent);color:#fff;box-shadow:0 2px 10px var(--accent-glow);}
 nav button:hover:not(.active){color:var(--text);background:var(--surface2);}
 
-/* ═══════════════════════════════════════════
-   MOBILE-FIRST: single column, cube sticks
-   ═══════════════════════════════════════════ */
-
-/* Cube area — sticky below header on mobile */
+/* MOBILE-FIRST */
 .cube-panel{
   position:sticky;
   top:var(--cube-top);
@@ -99,7 +179,6 @@ nav button:hover:not(.active){color:var(--text);background:var(--surface2);}
 #cubeCanvas{position:relative;z-index:1;cursor:grab;border-radius:12px;touch-action:none;}
 #cubeCanvas:active{cursor:grabbing;}
 
-/* Controls row — compact on mobile */
 .move-controls{
   margin-top:10px;
   display:flex;flex-wrap:wrap;gap:5px;
@@ -120,7 +199,6 @@ nav button:hover:not(.active){color:var(--text);background:var(--surface2);}
 .move-btn.action-btn:hover{background:var(--green);color:#fff;}
 .move-btn:disabled{opacity:0.35;pointer-events:none;}
 
-/* Info / playback bars under controls */
 .info-bar{
   background:var(--surface);border:1px solid var(--border);
   border-radius:10px;padding:10px 14px;
@@ -157,7 +235,6 @@ nav button:hover:not(.active){color:var(--text);background:var(--surface2);}
 .playback-bar button:hover{background:var(--accent);border-color:var(--accent);}
 .playback-bar button:disabled{opacity:0.35;pointer-events:none;}
 
-/* ─── Content panel (scrolls under sticky cube) ─── */
 .learn-panel{
   min-height:60vh;
   padding-bottom:env(safe-area-inset-bottom,20px);
@@ -176,8 +253,8 @@ nav button:hover:not(.active){color:var(--text);background:var(--surface2);}
 .step-number{
   font-family:'JetBrains Mono',monospace;
   font-size:0.65rem;font-weight:700;color:var(--accent);
-  background:rgba(255,107,53,0.1);
-  border:1px solid rgba(255,107,53,0.2);
+  background:color-mix(in srgb, var(--accent) 12%, transparent);
+  border:1px solid color-mix(in srgb, var(--accent) 22%, transparent);
   padding:4px 8px;border-radius:7px;
   min-width:28px;text-align:center;flex-shrink:0;
 }
@@ -214,10 +291,8 @@ nav button:hover:not(.active){color:var(--text);background:var(--surface2);}
 }
 .top-face-diagram .cell.y{background:#ffd60a;}
 .top-face-diagram .cell.x{background:#333;}
-.top-face-diagram .cell.c{background:#555;}/* center always yellow */
-/* Edge-only highlight */
+.top-face-diagram .cell.c{background:#555;}
 .top-face-diagram .cell.e{background:#ffd60a;box-shadow:0 0 3px rgba(255,214,10,0.5);}
-/* Arrow indicators */
 .pattern-arrows{
   display:flex;gap:4px;flex-wrap:wrap;
 }
@@ -308,9 +383,23 @@ nav button:hover:not(.active){color:var(--text);background:var(--surface2);}
 .time-entry .rank{color:var(--text-dim);}
 .time-entry .time-val{color:var(--accent);font-weight:700;}
 
-/* ═══════════════════════════════════════════
-   DESKTOP: side-by-side, cube sticky in left column
-   ═══════════════════════════════════════════ */
+@media(max-width:900px){
+  header{
+    flex-direction:column;
+    align-items:stretch;
+  }
+  .header-actions{
+    justify-content:space-between;
+  }
+  .theme-picker{
+    flex:1;
+    min-width:0;
+  }
+  .theme-select{
+    width:100%;
+  }
+}
+
 @media(min-width:901px){
   .app-wrapper{
     display:grid;
@@ -319,7 +408,7 @@ nav button:hover:not(.active){color:var(--text);background:var(--surface2);}
   }
   .cube-panel{
     position:sticky;
-    top:49px; /* header height on desktop */
+    top:49px;
     height:calc(100vh - 49px);
     border-bottom:none;
     border-right:1px solid var(--border);
@@ -350,14 +439,27 @@ nav button:hover:not(.active){color:var(--text);background:var(--surface2);}
 <header id="appHeader">
   <div class="logo">
     <div class="logo-icon"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
-    <h1>CubeForge</h1>
+    <h1>RubIQ Solver</h1>
   </div>
-  <nav>
-    <button class="active" data-tab="learn">Learn</button>
-    <button data-tab="algorithms">Algos</button>
-    <button data-tab="notation">Notation</button>
-    <button data-tab="timer">Timer</button>
-  </nav>
+
+  <div class="header-actions">
+    <div class="theme-picker">
+      <label for="themeSelect">Theme</label>
+      <select id="themeSelect" class="theme-select" aria-label="Choose theme">
+        <option value="neo">Neo</option>
+        <option value="inferno">Inferno</option>
+        <option value="volt">Volt</option>
+        <option value="rose">Rose</option>
+      </select>
+    </div>
+
+    <nav>
+      <button class="active" data-tab="learn">Learn</button>
+      <button data-tab="algorithms">Algos</button>
+      <button data-tab="notation">Notation</button>
+      <button data-tab="timer">Timer</button>
+    </nav>
+  </div>
 </header>
 
 <div class="app-wrapper">
@@ -399,6 +501,7 @@ nav button:hover:not(.active){color:var(--text);background:var(--surface2);}
       </div>
       <div id="stepsList"></div>
     </div>
+
     <div class="page" id="page-algorithms">
       <div class="method-header">
         <h2>Algorithm Library</h2>
@@ -406,6 +509,7 @@ nav button:hover:not(.active){color:var(--text);background:var(--surface2);}
       </div>
       <div id="algoSections"></div>
     </div>
+
     <div class="page" id="page-notation">
       <div class="method-header">
         <h2>Move Notation</h2>
@@ -413,6 +517,7 @@ nav button:hover:not(.active){color:var(--text);background:var(--surface2);}
       </div>
       <div class="notation-grid" id="notationGrid"></div>
     </div>
+
     <div class="page" id="page-timer">
       <div class="timer-display">
         <div class="timer-time" id="timerTime">0:00</div>
@@ -433,7 +538,39 @@ nav button:hover:not(.active){color:var(--text);background:var(--surface2);}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 // ═══════════════════════════════════════════════════════
-// STICKY-CUBE-TOP: measure header so cube sticks below it
+// THEME
+// ═══════════════════════════════════════════════════════
+const THEME_KEY = 'rubiqsolver-theme';
+const DEFAULT_THEME = 'neo';
+
+function applyTheme(theme){
+  const validThemes = ['neo','inferno','volt','rose'];
+  const safeTheme = validThemes.includes(theme) ? theme : DEFAULT_THEME;
+  document.documentElement.setAttribute('data-theme', safeTheme);
+  const select = document.getElementById('themeSelect');
+  if(select) select.value = safeTheme;
+
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  if(metaTheme){
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+    metaTheme.setAttribute('content', accent || '#6c63ff');
+  }
+
+  localStorage.setItem(THEME_KEY, safeTheme);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const savedTheme = localStorage.getItem(THEME_KEY) || DEFAULT_THEME;
+  applyTheme(savedTheme);
+
+  const themeSelect = document.getElementById('themeSelect');
+  themeSelect.addEventListener('change', (e) => {
+    applyTheme(e.target.value);
+  });
+});
+
+// ═══════════════════════════════════════════════════════
+// STICKY-CUBE-TOP
 // ═══════════════════════════════════════════════════════
 function setCubeTop(){
   const h=document.getElementById('appHeader').offsetHeight;
@@ -510,7 +647,7 @@ function buildFullCube(){
 }
 buildFullCube();
 
-// ─── Resize (responsive cube size) ───
+// ─── Resize
 function resize(){
   const panel=document.getElementById('cubePanel');
   const w=panel.clientWidth;
@@ -526,7 +663,7 @@ function resize(){
 window.addEventListener('resize',resize);
 setTimeout(resize,50);
 
-// ─── Orbit ───
+// ─── Orbit
 let orbiting=false,orbitStart={x:0,y:0};
 let spherical={theta:Math.PI/4.2,phi:Math.PI/7};
 const ORBIT_R=7.8;
@@ -557,7 +694,7 @@ canvas.addEventListener('pointermove',e=>{
 canvas.addEventListener('pointerup',()=>orbiting=false);
 canvas.addEventListener('pointercancel',()=>orbiting=false);
 
-// ─── Move definitions ───
+// ─── Move definitions
 const HALF=Math.PI/2;
 const MOVE_DEFS={
   'R':{axis:'x',layer:1,angle:-HALF},"R'":{axis:'x',layer:1,angle:HALF},
@@ -579,7 +716,7 @@ const AXIS_VEC={
   z:new THREE.Vector3(0,0,1),
 };
 
-// ─── Animation ───
+// ─── Animation
 let currentAnim=null;
 const ANIM_DUR=0.28;
 
@@ -638,7 +775,7 @@ const clock=new THREE.Clock();
 })();
 clock.getDelta();
 
-// ─── Move queue ───
+// ─── Move queue
 let moveQueue=[],processing=false;
 async function processQueue(){
   if(processing)return;processing=true;setDisabled(true);
@@ -669,15 +806,17 @@ function scrambleCube(){
   sc.forEach(m=>moveQueue.push(m));processQueue();
 }
 
-// ─── Playback ───
+// ─── Playback
 let pbMoves=[],pbIndex=0;
 
 function playAlgorithm(str){
-  resetCube();pbMoves=str.split(/\s+/).filter(Boolean);pbIndex=0;
+  if(currentAnim) finishAnim();
+  moveQueue = [];
+  pbMoves = str.split(/\s+/).filter(Boolean);
+  pbIndex = 0;
   document.getElementById('playbackBar').classList.add('visible');
-  // On mobile, scroll up so cube is visible
   window.scrollTo({top:0,behavior:'smooth'});
-  resize(); // recalc after playback bar appears
+  resize();
   updatePbDisplay();
 }
 function updatePbDisplay(){
@@ -696,9 +835,8 @@ function pbNext(){
 }
 function pbPrev(){
   if(pbIndex<=0||processing)return;
-  pbIndex--;resetCube();
-  for(let i=0;i<pbIndex;i++)moveQueue.push(pbMoves[i]);
-  processQueue();
+  pbIndex--;
+  updatePbDisplay();
 }
 function pbStop(){
   pbMoves=[];pbIndex=0;
@@ -706,7 +844,7 @@ function pbStop(){
   resize();
 }
 
-// ─── Data ───
+// ─── Data
 const STEPS=[
   {name:'White Cross',
    desc:'Form a white "+" on the top face. Each white edge must also match the center color of its adjacent side.',
@@ -792,6 +930,7 @@ const STEPS=[
       pattern:null,patternNote:'No face fully solved, opposite swaps'}
    ]}
 ];
+
 const ALGO_LIB=[
   {title:'OLL — Orientation',badge:'5 essential',algos:[
     {name:'OLL Cross',moves:"F R U R' U' F'",desc:'Create yellow cross',
@@ -831,6 +970,7 @@ const ALGO_LIB=[
     {name:'Split Left',moves:"U' L' U L U F U' F'",desc:'Edge on top → left',
      when:'Edge is in top layer, front color matches front center, top color matches the left center.'}]}
 ];
+
 const NOTATIONS=[
   {s:'R',l:'Right CW'},{s:"R'",l:'Right CCW'},
   {s:'L',l:'Left CW'},{s:"L'",l:'Left CCW'},
@@ -840,17 +980,27 @@ const NOTATIONS=[
   {s:'B',l:'Back CW'},{s:"B'",l:'Back CCW'},
 ];
 
-// ─── Render pages ───
-// Safely encode moves for HTML attributes
-function encMoves(s){return s.replace(/'/g,'PRIME');}
-function decMoves(s){return s.replace(/PRIME/g,"'");}
+// ─── Safe encoding for algorithm strings
+function encMoves(s){
+  return btoa(unescape(encodeURIComponent(s)));
+}
+function decMoves(s){
+  return decodeURIComponent(escape(atob(s)));
+}
 
-// Event delegation for play buttons and notation cards
+// ─── Event delegation
 document.addEventListener('click',function(e){
   const playBtn=e.target.closest('[data-algo]');
-  if(playBtn){e.stopPropagation();playAlgorithm(decMoves(playBtn.dataset.algo));return;}
+  if(playBtn){
+    e.stopPropagation();
+    playAlgorithm(decMoves(playBtn.dataset.algo));
+    return;
+  }
   const notCard=e.target.closest('[data-move]');
-  if(notCard){execMove(decMoves(notCard.dataset.move));return;}
+  if(notCard){
+    execMove(decMoves(notCard.dataset.move));
+    return;
+  }
 });
 
 function renderLearn(){
@@ -863,8 +1013,6 @@ function renderLearn(){
         <p style="margin-top:5px;color:var(--green);font-size:0.72rem">${step.tips}</p>
         ${step.how?`<p style="margin-top:6px;font-size:0.75rem;line-height:1.5;color:var(--text)">${step.how}</p>`:''}
         ${step.algos.map(a=>{
-          // Build top-face pattern diagram if provided
-          // pattern is a 9-char string: y=yellow, x=not-yellow, e=edge-highlight, c=center
           let patternHtml='';
           if(a.pattern){
             const cells=a.pattern.split('').map(ch=>{
@@ -885,7 +1033,7 @@ function renderLearn(){
             ${a.when?`<div class="algo-when"><b>When to use:</b> ${a.when}</div>`:''}
             ${patternHtml}
             <div class="algo-moves">${a.moves.split(' ').map(m=>`<span class="move">${m}</span>`).join('')}</div>
-            <button class="play-btn" data-algo="${encMoves(a.moves)}">
+            <button class="play-btn" type="button" data-algo="${encMoves(a.moves)}">
               <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg> Animate
             </button>
           </div>`;
@@ -904,7 +1052,7 @@ function renderAlgos(){
           <div class="algo-desc">${a.desc}</div>
           ${a.when?`<div class="algo-when"><b>When to use:</b> ${a.when}</div>`:''}
           <div class="algo-moves">${a.moves.split(' ').map(m=>`<span class="move">${m}</span>`).join('')}</div>
-          <button class="play-btn" data-algo="${encMoves(a.moves)}">
+          <button class="play-btn" type="button" data-algo="${encMoves(a.moves)}">
             <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg> Animate
           </button>
         </div>`).join('')}
@@ -919,19 +1067,18 @@ function renderNotation(){
     </div>`).join('');
 }
 
-// ─── Nav ───
+// ─── Nav
 document.querySelectorAll('nav button').forEach(btn=>{
   btn.addEventListener('click',()=>{
     document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     document.getElementById('page-'+btn.dataset.tab).classList.add('active');
-    // Scroll content to top when switching tabs
     window.scrollTo({top:0,behavior:'smooth'});
   });
 });
 
-// ─── Timer ───
+// ─── Timer
 let timerOn=false,timerStart=0,timerInt=null,solves=[];
 function toggleTimer(){
   const btn=document.getElementById('timerBtn');
@@ -957,7 +1104,9 @@ function resetTimerUI(){
   document.getElementById('timerMs').textContent='.000';
 }
 
-renderLearn();renderAlgos();renderNotation();
+renderLearn();
+renderAlgos();
+renderNotation();
 </script>
 </body>
 </html>
