@@ -4,18 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>CubeForge — Rubik's Cube Algorithm Trainer</title>
-
-<!-- PWA manifest -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#ff6b35">
-
-<!-- iOS home screen -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="CubeForge">
 <link rel="apple-touch-icon" href="icon-180.png">
-
-<!-- Favicon -->
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;400;600;700;900&display=swap" rel="stylesheet">
@@ -29,281 +23,345 @@
   --text-dim: #8888a0;
   --accent: #ff6b35;
   --accent2: #ff9f1c;
-  --accent-glow: rgba(255, 107, 53, 0.3);
+  --accent-glow: rgba(255,107,53,0.3);
   --green: #2ec4b6;
+  --cube-top: 0px; /* set by JS: header height */
 }
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  font-family: 'Outfit', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  overflow-x: hidden;
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:'Outfit',sans-serif;
+  background:var(--bg);color:var(--text);
+  min-height:100vh;overflow-x:hidden;
+  /* prevent iOS overscroll bounce from revealing white */
+  overscroll-behavior:none;
 }
-body::before {
-  content: '';
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
-  pointer-events: none;
-  z-index: 9999;
-}
-
-header {
-  padding: 16px 32px;
-  display: flex; align-items: center; justify-content: space-between;
-  border-bottom: 1px solid var(--border);
-  position: sticky; top: 0;
-  background: rgba(10, 10, 15, 0.92);
-  backdrop-filter: blur(20px); z-index: 100;
-}
-.logo { display: flex; align-items: center; gap: 12px; }
-.logo-icon {
-  width: 32px; height: 32px;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  border-radius: 7px;
-  display: grid; grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(3, 1fr);
-  gap: 2px; padding: 3px; transform: rotate(-10deg);
-}
-.logo-icon span { background: rgba(0,0,0,0.3); border-radius: 1px; }
-.logo h1 {
-  font-size: 1.3rem; font-weight: 900; letter-spacing: -0.5px;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-}
-nav {
-  display: flex; gap: 4px;
-  background: var(--surface); padding: 4px; border-radius: 12px;
-  border: 1px solid var(--border);
-}
-nav button {
-  font-family: 'Outfit', sans-serif;
-  padding: 7px 18px; border: none; background: transparent;
-  color: var(--text-dim); border-radius: 8px; cursor: pointer;
-  font-size: 0.85rem; font-weight: 600; transition: all 0.2s;
-}
-nav button.active {
-  background: var(--accent); color: #fff;
-  box-shadow: 0 2px 12px var(--accent-glow);
-}
-nav button:hover:not(.active) { color: var(--text); background: var(--surface2); }
-
-.app {
-  display: grid; grid-template-columns: 1fr 1fr;
-  min-height: calc(100vh - 57px);
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:9999;
 }
 
-.cube-panel {
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  padding: 24px; position: relative; overflow: hidden;
+/* ─── Header ─── */
+header{
+  padding:12px 20px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;
+  background:rgba(10,10,15,0.94);
+  backdrop-filter:blur(20px);z-index:200;
 }
-.cube-panel::before {
-  content: ''; position: absolute;
-  width: 400px; height: 400px;
-  background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
-  border-radius: 50%; filter: blur(60px); opacity: 0.3;
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-icon{
+  width:28px;height:28px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border-radius:6px;
+  display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
+  gap:2px;padding:3px;transform:rotate(-10deg);
 }
-#cubeCanvas {
-  position: relative; z-index: 1; border-radius: 16px; cursor: grab;
+.logo-icon span{background:rgba(0,0,0,0.3);border-radius:1px;}
+.logo h1{
+  font-size:1.15rem;font-weight:900;letter-spacing:-0.5px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
 }
-#cubeCanvas:active { cursor: grabbing; }
+nav{display:flex;gap:3px;background:var(--surface);padding:3px;border-radius:10px;border:1px solid var(--border);}
+nav button{
+  font-family:'Outfit',sans-serif;
+  padding:6px 14px;border:none;background:transparent;
+  color:var(--text-dim);border-radius:7px;cursor:pointer;
+  font-size:0.78rem;font-weight:600;transition:all 0.2s;
+}
+nav button.active{background:var(--accent);color:#fff;box-shadow:0 2px 10px var(--accent-glow);}
+nav button:hover:not(.active){color:var(--text);background:var(--surface2);}
 
-.move-controls {
-  margin-top: 28px;
-  display: flex; flex-wrap: wrap; gap: 6px;
-  justify-content: center; max-width: 420px; z-index: 1;
-}
-.move-btn {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.8rem; font-weight: 700;
-  padding: 8px 14px; border: 1px solid var(--border);
-  background: var(--surface); color: var(--text);
-  border-radius: 8px; cursor: pointer; transition: all 0.15s;
-  min-width: 42px;
-}
-.move-btn:hover {
-  background: var(--accent); color: #fff;
-  border-color: var(--accent); transform: translateY(-2px);
-  box-shadow: 0 4px 12px var(--accent-glow);
-}
-.move-btn.action-btn { background: var(--surface2); border-color: var(--green); color: var(--green); }
-.move-btn.action-btn:hover { background: var(--green); color: #fff; }
-.move-btn:disabled { opacity: 0.4; pointer-events: none; }
+/* ═══════════════════════════════════════════
+   MOBILE-FIRST: single column, cube sticks
+   ═══════════════════════════════════════════ */
 
-.info-bar {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 12px; padding: 14px 18px;
-  margin-top: 18px; z-index: 1; max-width: 420px; width: 100%;
+/* Cube area — sticky below header on mobile */
+.cube-panel{
+  position:sticky;
+  top:var(--cube-top);
+  z-index:50;
+  background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;
+  padding:12px 12px 8px;
+  border-bottom:1px solid var(--border);
 }
-.info-bar .label {
-  font-size: 0.65rem; font-weight: 600; color: var(--text-dim);
-  text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;
+.cube-panel::before{
+  content:'';position:absolute;
+  width:300px;height:300px;
+  background:radial-gradient(circle,var(--accent-glow) 0%,transparent 70%);
+  border-radius:50%;filter:blur(50px);opacity:0.25;
+  pointer-events:none;
 }
-.info-bar .content {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.82rem; color: var(--accent2);
-  word-spacing: 4px; line-height: 1.6;
+#cubeCanvas{position:relative;z-index:1;cursor:grab;border-radius:12px;touch-action:none;}
+#cubeCanvas:active{cursor:grabbing;}
+
+/* Controls row — compact on mobile */
+.move-controls{
+  margin-top:10px;
+  display:flex;flex-wrap:wrap;gap:5px;
+  justify-content:center;max-width:380px;z-index:1;
+}
+.move-btn{
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.72rem;font-weight:700;
+  padding:7px 11px;border:1px solid var(--border);
+  background:var(--surface);color:var(--text);
+  border-radius:7px;cursor:pointer;transition:all 0.15s;
+  min-width:38px;text-align:center;
+  -webkit-tap-highlight-color:transparent;
+}
+.move-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
+.move-btn:active{transform:scale(0.95);}
+.move-btn.action-btn{background:var(--surface2);border-color:var(--green);color:var(--green);}
+.move-btn.action-btn:hover{background:var(--green);color:#fff;}
+.move-btn:disabled{opacity:0.35;pointer-events:none;}
+
+/* Info / playback bars under controls */
+.info-bar{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:10px 14px;
+  margin-top:8px;z-index:1;max-width:380px;width:100%;
+}
+.info-bar .label{
+  font-size:0.6rem;font-weight:600;color:var(--text-dim);
+  text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;
+}
+.info-bar .content{
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.75rem;color:var(--accent2);
+  word-spacing:3px;line-height:1.5;
+}
+.playback-bar{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:8px 14px;
+  margin-top:6px;z-index:1;max-width:380px;width:100%;
+  display:none;align-items:center;gap:8px;
+}
+.playback-bar.visible{display:flex;}
+.playback-bar .step-display{
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.72rem;color:var(--accent);flex:1;font-weight:600;
+  overflow-x:auto;white-space:nowrap;
+}
+.playback-bar button{
+  font-family:'Outfit',sans-serif;
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--text);padding:5px 10px;border-radius:6px;
+  cursor:pointer;font-size:0.72rem;transition:all 0.15s;
+  -webkit-tap-highlight-color:transparent;flex-shrink:0;
+}
+.playback-bar button:hover{background:var(--accent);border-color:var(--accent);}
+.playback-bar button:disabled{opacity:0.35;pointer-events:none;}
+
+/* ─── Content panel (scrolls under sticky cube) ─── */
+.learn-panel{
+  min-height:60vh;
+  padding-bottom:env(safe-area-inset-bottom,20px);
+}
+.page{display:none;}
+.page.active{display:block;}
+.method-header{padding:24px 20px;border-bottom:1px solid var(--border);}
+.method-header h2{font-size:1.5rem;font-weight:900;letter-spacing:-0.8px;margin-bottom:4px;}
+.method-header p{color:var(--text-dim);font-size:0.88rem;line-height:1.5;}
+
+.step-card{
+  padding:16px 20px;border-bottom:1px solid var(--border);
+  display:flex;gap:14px;align-items:flex-start;transition:background 0.2s;
+}
+.step-card:hover{background:var(--surface);}
+.step-number{
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.65rem;font-weight:700;color:var(--accent);
+  background:rgba(255,107,53,0.1);
+  border:1px solid rgba(255,107,53,0.2);
+  padding:4px 8px;border-radius:7px;
+  min-width:28px;text-align:center;flex-shrink:0;
+}
+.step-info h3{font-size:0.95rem;font-weight:700;margin-bottom:2px;}
+.step-info>p{color:var(--text-dim);font-size:0.78rem;line-height:1.45;}
+
+.algo-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:14px;margin-top:8px;transition:all 0.2s;
+}
+.algo-card:hover{border-color:var(--accent);box-shadow:0 4px 16px rgba(0,0,0,0.3);}
+.algo-card .algo-name{font-weight:700;font-size:0.85rem;margin-bottom:2px;color:var(--accent2);}
+.algo-card .algo-desc{font-size:0.72rem;color:var(--text-dim);margin-bottom:6px;}
+.algo-card .algo-when{
+  font-size:0.72rem;line-height:1.45;color:var(--text);
+  margin-bottom:8px;padding:8px 10px;
+  background:rgba(46,196,182,0.06);border:1px solid rgba(46,196,182,0.15);
+  border-radius:7px;
+}
+.algo-card .algo-when b{color:var(--green);font-weight:700;}
+.algo-card .pattern-row{
+  display:flex;align-items:center;gap:10px;margin-bottom:8px;
+}
+.algo-card .pattern-label{
+  font-size:0.65rem;color:var(--text-dim);text-transform:uppercase;
+  letter-spacing:0.5px;font-weight:600;
+}
+.top-face-diagram{
+  display:inline-grid;grid-template-columns:repeat(3,1fr);
+  gap:2px;width:42px;height:42px;flex-shrink:0;
+}
+.top-face-diagram .cell{
+  border-radius:2px;border:1px solid rgba(255,255,255,0.08);
+}
+.top-face-diagram .cell.y{background:#ffd60a;}
+.top-face-diagram .cell.x{background:#333;}
+.top-face-diagram .cell.c{background:#555;}/* center always yellow */
+/* Edge-only highlight */
+.top-face-diagram .cell.e{background:#ffd60a;box-shadow:0 0 3px rgba(255,214,10,0.5);}
+/* Arrow indicators */
+.pattern-arrows{
+  display:flex;gap:4px;flex-wrap:wrap;
+}
+.pattern-arrows .arrow-tag{
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.6rem;padding:2px 6px;
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:4px;color:var(--accent2);
+}
+.algo-moves{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;}
+.algo-moves .move{
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.7rem;font-weight:600;
+  padding:3px 7px;background:var(--surface2);
+  border:1px solid var(--border);border-radius:5px;color:var(--text);
+}
+.play-btn{
+  font-family:'Outfit',sans-serif;
+  font-size:0.72rem;font-weight:600;
+  padding:6px 12px;border:1px solid var(--accent);
+  background:transparent;color:var(--accent);
+  border-radius:7px;cursor:pointer;transition:all 0.2s;
+  display:inline-flex;align-items:center;gap:4px;
+  -webkit-tap-highlight-color:transparent;
+}
+.play-btn:hover{background:var(--accent);color:#fff;}
+.play-btn svg{width:11px;height:11px;}
+
+.algo-section{padding:16px 20px;border-bottom:1px solid var(--border);}
+.algo-section h3{
+  font-size:1rem;font-weight:700;margin-bottom:12px;
+  display:flex;align-items:center;gap:8px;
+}
+.algo-section h3 .badge{
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.55rem;font-weight:600;padding:2px 6px;
+  border-radius:20px;background:rgba(46,196,182,0.1);
+  color:var(--green);border:1px solid rgba(46,196,182,0.2);
 }
 
-.playback-bar {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 12px; padding: 10px 18px;
-  margin-top: 10px; z-index: 1; max-width: 420px; width: 100%;
-  display: none; align-items: center; gap: 10px;
+.notation-grid{
+  display:grid;grid-template-columns:repeat(2,1fr);
+  gap:8px;padding:16px 20px;
 }
-.playback-bar.visible { display: flex; }
-.playback-bar .step-display {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.82rem; color: var(--accent); flex: 1; font-weight: 600;
+.notation-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:14px;cursor:pointer;
+  transition:all 0.2s;text-align:center;
+  -webkit-tap-highlight-color:transparent;
 }
-.playback-bar button {
-  font-family: 'Outfit', sans-serif;
-  background: var(--surface2); border: 1px solid var(--border);
-  color: var(--text); padding: 5px 11px; border-radius: 6px;
-  cursor: pointer; font-size: 0.78rem; transition: all 0.15s;
+.notation-card:hover{border-color:var(--accent);}
+.notation-card:active{transform:scale(0.97);}
+.notation-card .symbol{
+  font-family:'JetBrains Mono',monospace;
+  font-size:1.5rem;font-weight:700;color:var(--accent);margin-bottom:2px;
 }
-.playback-bar button:hover { background: var(--accent); border-color: var(--accent); }
-.playback-bar button:disabled { opacity: 0.4; pointer-events: none; }
+.notation-card .label{font-size:0.75rem;color:var(--text-dim);}
 
-.learn-panel {
-  border-left: 1px solid var(--border);
-  overflow-y: auto; max-height: calc(100vh - 57px);
+.timer-display{padding:40px 20px;text-align:center;}
+.timer-time{
+  font-family:'JetBrains Mono',monospace;
+  font-size:3.5rem;font-weight:700;letter-spacing:-2px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-bottom:4px;
 }
-.page { display: none; }
-.page.active { display: block; }
-.method-header { padding: 32px 36px; border-bottom: 1px solid var(--border); }
-.method-header h2 { font-size: 1.8rem; font-weight: 900; letter-spacing: -1px; margin-bottom: 6px; }
-.method-header p { color: var(--text-dim); font-size: 0.95rem; line-height: 1.6; }
+.timer-ms{
+  font-family:'JetBrains Mono',monospace;
+  font-size:1.5rem;color:var(--text-dim);margin-bottom:28px;
+}
+.timer-controls{display:flex;gap:10px;justify-content:center;margin-bottom:28px;}
+.timer-btn{
+  font-family:'Outfit',sans-serif;font-size:0.95rem;font-weight:700;
+  padding:11px 24px;border:none;border-radius:10px;cursor:pointer;transition:all 0.2s;
+  -webkit-tap-highlight-color:transparent;
+}
+.timer-btn.start{background:var(--accent);color:#fff;box-shadow:0 4px 18px var(--accent-glow);}
+.timer-btn.start:hover{box-shadow:0 6px 22px var(--accent-glow);}
+.timer-btn.reset{background:var(--surface);color:var(--text-dim);border:1px solid var(--border);}
+.times-list{padding:0 20px 40px;}
+.times-list h3{font-size:0.9rem;font-weight:700;margin-bottom:12px;color:var(--text-dim);}
+.time-entry{
+  display:flex;justify-content:space-between;
+  padding:9px 12px;background:var(--surface);
+  border:1px solid var(--border);border-radius:7px;
+  margin-bottom:5px;font-family:'JetBrains Mono',monospace;font-size:0.78rem;
+}
+.time-entry .rank{color:var(--text-dim);}
+.time-entry .time-val{color:var(--accent);font-weight:700;}
 
-.step-card {
-  padding: 20px 36px; border-bottom: 1px solid var(--border);
-  display: flex; gap: 18px; align-items: flex-start; transition: all 0.2s;
-}
-.step-card:hover { background: var(--surface); }
-.step-number {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.7rem; font-weight: 700; color: var(--accent);
-  background: rgba(255, 107, 53, 0.1);
-  border: 1px solid rgba(255, 107, 53, 0.2);
-  padding: 5px 9px; border-radius: 8px;
-  min-width: 32px; text-align: center; flex-shrink: 0;
-}
-.step-info h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 3px; }
-.step-info > p { color: var(--text-dim); font-size: 0.82rem; line-height: 1.5; }
-
-.algo-card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 12px; padding: 16px; margin-top: 10px; transition: all 0.2s;
-}
-.algo-card:hover { border-color: var(--accent); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
-.algo-card .algo-name { font-weight: 700; font-size: 0.9rem; margin-bottom: 3px; color: var(--accent2); }
-.algo-card .algo-desc { font-size: 0.78rem; color: var(--text-dim); margin-bottom: 10px; }
-.algo-moves { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
-.algo-moves .move {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.75rem; font-weight: 600;
-  padding: 3px 8px; background: var(--surface2);
-  border: 1px solid var(--border); border-radius: 5px; color: var(--text);
-}
-.play-btn {
-  font-family: 'Outfit', sans-serif;
-  font-size: 0.78rem; font-weight: 600;
-  padding: 7px 14px; border: 1px solid var(--accent);
-  background: transparent; color: var(--accent);
-  border-radius: 8px; cursor: pointer; transition: all 0.2s;
-  display: inline-flex; align-items: center; gap: 5px;
-}
-.play-btn:hover { background: var(--accent); color: #fff; }
-.play-btn svg { width: 12px; height: 12px; }
-
-.algo-section { padding: 20px 36px; border-bottom: 1px solid var(--border); }
-.algo-section h3 {
-  font-size: 1.1rem; font-weight: 700; margin-bottom: 14px;
-  display: flex; align-items: center; gap: 10px;
-}
-.algo-section h3 .badge {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.6rem; font-weight: 600; padding: 2px 7px;
-  border-radius: 20px; background: rgba(46, 196, 182, 0.1);
-  color: var(--green); border: 1px solid rgba(46, 196, 182, 0.2);
-}
-
-.notation-grid {
-  display: grid; grid-template-columns: repeat(2, 1fr);
-  gap: 10px; padding: 20px 36px;
-}
-.notation-card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 12px; padding: 18px; cursor: pointer;
-  transition: all 0.2s; text-align: center;
-}
-.notation-card:hover { border-color: var(--accent); transform: translateY(-2px); }
-.notation-card .symbol {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 1.8rem; font-weight: 700; color: var(--accent); margin-bottom: 3px;
-}
-.notation-card .label { font-size: 0.82rem; color: var(--text-dim); }
-
-.timer-display { padding: 50px 36px; text-align: center; }
-.timer-time {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 4.5rem; font-weight: 700; letter-spacing: -2px;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  margin-bottom: 6px;
-}
-.timer-ms {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 1.8rem; color: var(--text-dim); margin-bottom: 32px;
-}
-.timer-controls { display: flex; gap: 12px; justify-content: center; margin-bottom: 36px; }
-.timer-btn {
-  font-family: 'Outfit', sans-serif; font-size: 1rem; font-weight: 700;
-  padding: 12px 28px; border: none; border-radius: 12px; cursor: pointer; transition: all 0.2s;
-}
-.timer-btn.start { background: var(--accent); color: #fff; box-shadow: 0 4px 20px var(--accent-glow); }
-.timer-btn.start:hover { transform: translateY(-2px); box-shadow: 0 6px 24px var(--accent-glow); }
-.timer-btn.reset { background: var(--surface); color: var(--text-dim); border: 1px solid var(--border); }
-.timer-btn.reset:hover { color: var(--text); border-color: var(--text-dim); }
-.times-list { padding: 0 36px 36px; }
-.times-list h3 { font-size: 1rem; font-weight: 700; margin-bottom: 14px; color: var(--text-dim); }
-.time-entry {
-  display: flex; justify-content: space-between;
-  padding: 10px 14px; background: var(--surface);
-  border: 1px solid var(--border); border-radius: 8px;
-  margin-bottom: 6px; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;
-}
-.time-entry .rank { color: var(--text-dim); }
-.time-entry .time-val { color: var(--accent); font-weight: 700; }
-
-@media (max-width: 900px) {
-  .app { grid-template-columns: 1fr; }
-  .cube-panel { padding: 20px 16px; min-height: 420px; }
-  .learn-panel { border-left: none; border-top: 1px solid var(--border); max-height: none; }
-  header { padding: 12px 16px; flex-direction: column; gap: 10px; }
-  .method-header, .algo-section, .notation-grid, .times-list, .step-card { padding-left: 16px; padding-right: 16px; }
+/* ═══════════════════════════════════════════
+   DESKTOP: side-by-side, cube sticky in left column
+   ═══════════════════════════════════════════ */
+@media(min-width:901px){
+  .app-wrapper{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    min-height:calc(100vh - 49px);
+  }
+  .cube-panel{
+    position:sticky;
+    top:49px; /* header height on desktop */
+    height:calc(100vh - 49px);
+    border-bottom:none;
+    border-right:1px solid var(--border);
+    padding:24px;
+    justify-content:center;
+    overflow:hidden;
+  }
+  .learn-panel{
+    overflow-y:auto;
+    max-height:calc(100vh - 49px);
+  }
+  .method-header{padding:28px 32px;}
+  .step-card{padding:18px 32px;}
+  .algo-section{padding:18px 32px;}
+  .notation-grid{padding:18px 32px;}
+  .times-list{padding:0 32px 32px;}
+  .timer-display{padding:48px 32px;}
+  header{padding:12px 28px;}
+  .move-controls{max-width:400px;}
+  .info-bar,.playback-bar{max-width:400px;}
+  .timer-time{font-size:4.5rem;}
+  .timer-ms{font-size:1.8rem;}
 }
 </style>
 </head>
 <body>
 
-<header>
+<header id="appHeader">
   <div class="logo">
     <div class="logo-icon"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
     <h1>CubeForge</h1>
   </div>
   <nav>
     <button class="active" data-tab="learn">Learn</button>
-    <button data-tab="algorithms">Algorithms</button>
+    <button data-tab="algorithms">Algos</button>
     <button data-tab="notation">Notation</button>
     <button data-tab="timer">Timer</button>
   </nav>
 </header>
 
-<div class="app">
-  <div class="cube-panel">
+<div class="app-wrapper">
+  <div class="cube-panel" id="cubePanel">
     <canvas id="cubeCanvas"></canvas>
     <div class="move-controls" id="moveControls">
       <button class="move-btn" onclick="execMove('R')">R</button>
@@ -327,8 +385,8 @@ nav button:hover:not(.active) { color: var(--text); background: var(--surface2);
     </div>
     <div class="playback-bar" id="playbackBar">
       <div class="step-display" id="playbackStep">—</div>
-      <button onclick="pbPrev()" id="pbPrevBtn">◀ Prev</button>
-      <button onclick="pbNext()" id="pbNextBtn">Next ▶</button>
+      <button onclick="pbPrev()" id="pbPrevBtn">◀</button>
+      <button onclick="pbNext()" id="pbNextBtn">▶</button>
       <button onclick="pbStop()">✕</button>
     </div>
   </div>
@@ -337,21 +395,21 @@ nav button:hover:not(.active) { color: var(--text); background: var(--surface2);
     <div class="page active" id="page-learn">
       <div class="method-header">
         <h2>Beginner's Method</h2>
-        <p>Learn to solve the Rubik's Cube step by step. Click "Animate" to watch each algorithm with real 3D face turns.</p>
+        <p>7 steps to solve any Rubik's Cube. Each step shows what to look for on your cube and exactly when to apply each algorithm.</p>
       </div>
       <div id="stepsList"></div>
     </div>
     <div class="page" id="page-algorithms">
       <div class="method-header">
         <h2>Algorithm Library</h2>
-        <p>Essential algorithms organized by category. Animate them on the 3D cube.</p>
+        <p>Essential algorithms by category. Animate any on the 3D cube.</p>
       </div>
       <div id="algoSections"></div>
     </div>
     <div class="page" id="page-notation">
       <div class="method-header">
         <h2>Move Notation</h2>
-        <p>Standard notation. Each letter is a face. Alone = clockwise 90°. Apostrophe = counter-clockwise. Click any to see it animated.</p>
+        <p>Tap any move to see it animated on the cube.</p>
       </div>
       <div class="notation-grid" id="notationGrid"></div>
     </div>
@@ -375,571 +433,531 @@ nav button:hover:not(.active) { color: var(--text); background: var(--surface2);
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 // ═══════════════════════════════════════════════════════
+// STICKY-CUBE-TOP: measure header so cube sticks below it
+// ═══════════════════════════════════════════════════════
+function setCubeTop(){
+  const h=document.getElementById('appHeader').offsetHeight;
+  document.documentElement.style.setProperty('--cube-top', h+'px');
+}
+setCubeTop();
+window.addEventListener('resize', setCubeTop);
+
+// ═══════════════════════════════════════════════════════
 // THREE.JS RUBIK'S CUBE — REAL ANIMATED FACE TURNS
 // ═══════════════════════════════════════════════════════
-
-const FACE_COLORS = {
-  front:  0xe63946,  // +Z red
-  back:   0xff8c42,  // -Z orange
-  left:   0x2ec4b6,  // -X green
-  right:  0x4361ee,  // +X blue
-  up:     0xffffff,  // +Y white
-  down:   0xffd60a,  // -Y yellow
-  inner:  0x111118,
+const FACE_COLORS={
+  front:0xe63946, back:0xff8c42,
+  left:0x2ec4b6, right:0x4361ee,
+  up:0xffffff, down:0xffd60a,
+  inner:0x111118,
 };
 
-const canvas = document.getElementById('cubeCanvas');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+const canvas=document.getElementById('cubeCanvas');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
 
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(35,1,0.1,100);
 
-const ambient = new THREE.AmbientLight(0xffffff, 0.55);
-scene.add(ambient);
-const dir1 = new THREE.DirectionalLight(0xffffff, 0.75);
-dir1.position.set(5, 10, 7); scene.add(dir1);
-const dir2 = new THREE.DirectionalLight(0xffffff, 0.25);
-dir2.position.set(-5, -3, -5); scene.add(dir2);
+scene.add(new THREE.AmbientLight(0xffffff,0.55));
+const d1=new THREE.DirectionalLight(0xffffff,0.75);d1.position.set(5,10,7);scene.add(d1);
+const d2=new THREE.DirectionalLight(0xffffff,0.25);d2.position.set(-5,-3,-5);scene.add(d2);
 
-// ─── Cubie building ───
-const GAP = 0.08;
-const CUBIE = 0.9;
-const STICKER = 0.82;
-const STICKER_RAISE = 0.005;
-
-// We build each cubie as a group: a black body + up to 6 colored sticker planes
-const cubeGroup = new THREE.Group();
+const GAP=0.08, CUBIE=0.9, STICKER=0.82, STICKER_RAISE=0.005;
+const cubeGroup=new THREE.Group();
 scene.add(cubeGroup);
+let allCubies=[];
 
-let allCubies = []; // { group, x, y, z }
-
-function stickerColor(x, y, z, face) {
-  if (face === '+x' && x === 1) return FACE_COLORS.right;
-  if (face === '-x' && x === -1) return FACE_COLORS.left;
-  if (face === '+y' && y === 1) return FACE_COLORS.up;
-  if (face === '-y' && y === -1) return FACE_COLORS.down;
-  if (face === '+z' && z === 1) return FACE_COLORS.front;
-  if (face === '-z' && z === -1) return FACE_COLORS.back;
+function stickerColor(x,y,z,face){
+  if(face==='+x'&&x===1) return FACE_COLORS.right;
+  if(face==='-x'&&x===-1) return FACE_COLORS.left;
+  if(face==='+y'&&y===1) return FACE_COLORS.up;
+  if(face==='-y'&&y===-1) return FACE_COLORS.down;
+  if(face==='+z'&&z===1) return FACE_COLORS.front;
+  if(face==='-z'&&z===-1) return FACE_COLORS.back;
   return null;
 }
 
-function buildCubie(x, y, z) {
-  const group = new THREE.Group();
-
-  // Black body
-  const bodyGeo = new THREE.BoxGeometry(CUBIE, CUBIE, CUBIE);
-  const bodyMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.85 });
-  const body = new THREE.Mesh(bodyGeo, bodyMat);
-  group.add(body);
-
-  // Stickers
-  const stickerGeo = new THREE.PlaneGeometry(STICKER, STICKER);
-  const faces = [
-    { name: '+x', pos: [CUBIE/2 + STICKER_RAISE, 0, 0], rot: [0, Math.PI/2, 0] },
-    { name: '-x', pos: [-CUBIE/2 - STICKER_RAISE, 0, 0], rot: [0, -Math.PI/2, 0] },
-    { name: '+y', pos: [0, CUBIE/2 + STICKER_RAISE, 0], rot: [-Math.PI/2, 0, 0] },
-    { name: '-y', pos: [0, -CUBIE/2 - STICKER_RAISE, 0], rot: [Math.PI/2, 0, 0] },
-    { name: '+z', pos: [0, 0, CUBIE/2 + STICKER_RAISE], rot: [0, 0, 0] },
-    { name: '-z', pos: [0, 0, -CUBIE/2 - STICKER_RAISE], rot: [0, Math.PI, 0] },
-  ];
-
-  faces.forEach(f => {
-    const col = stickerColor(x, y, z, f.name);
-    if (col === null) return;
-    const mat = new THREE.MeshStandardMaterial({
-      color: col, roughness: 0.25, metalness: 0.05,
-    });
-    const mesh = new THREE.Mesh(stickerGeo, mat);
-    mesh.position.set(...f.pos);
-    mesh.rotation.set(...f.rot);
-    group.add(mesh);
+function buildCubie(x,y,z){
+  const g=new THREE.Group();
+  g.add(new THREE.Mesh(
+    new THREE.BoxGeometry(CUBIE,CUBIE,CUBIE),
+    new THREE.MeshStandardMaterial({color:0x0a0a0a,roughness:0.85})
+  ));
+  const sg=new THREE.PlaneGeometry(STICKER,STICKER);
+  [{name:'+x',pos:[CUBIE/2+STICKER_RAISE,0,0],rot:[0,Math.PI/2,0]},
+   {name:'-x',pos:[-CUBIE/2-STICKER_RAISE,0,0],rot:[0,-Math.PI/2,0]},
+   {name:'+y',pos:[0,CUBIE/2+STICKER_RAISE,0],rot:[-Math.PI/2,0,0]},
+   {name:'-y',pos:[0,-CUBIE/2-STICKER_RAISE,0],rot:[Math.PI/2,0,0]},
+   {name:'+z',pos:[0,0,CUBIE/2+STICKER_RAISE],rot:[0,0,0]},
+   {name:'-z',pos:[0,0,-CUBIE/2-STICKER_RAISE],rot:[0,Math.PI,0]},
+  ].forEach(f=>{
+    const c=stickerColor(x,y,z,f.name); if(!c) return;
+    const m=new THREE.Mesh(sg,new THREE.MeshStandardMaterial({color:c,roughness:0.25,metalness:0.05}));
+    m.position.set(...f.pos);m.rotation.set(...f.rot);g.add(m);
   });
-
-  const spacing = 1 + GAP;
-  group.position.set(x * spacing, y * spacing, z * spacing);
-  return group;
+  g.position.set(x*(1+GAP),y*(1+GAP),z*(1+GAP));
+  return g;
 }
 
-function buildFullCube() {
-  // Clear
-  allCubies.forEach(c => cubeGroup.remove(c.group));
-  allCubies = [];
-
-  for (let x = -1; x <= 1; x++) {
-    for (let y = -1; y <= 1; y++) {
-      for (let z = -1; z <= 1; z++) {
-        const g = buildCubie(x, y, z);
-        cubeGroup.add(g);
-        allCubies.push({ group: g, x, y, z });
-      }
-    }
+function buildFullCube(){
+  allCubies.forEach(c=>cubeGroup.remove(c.group));
+  allCubies=[];
+  for(let x=-1;x<=1;x++)for(let y=-1;y<=1;y++)for(let z=-1;z<=1;z++){
+    const g=buildCubie(x,y,z);cubeGroup.add(g);
+    allCubies.push({group:g,x,y,z});
   }
 }
-
 buildFullCube();
 
-// ─── Resize ───
-function resize() {
-  const panel = canvas.parentElement;
-  const size = Math.min(panel.clientWidth - 48, 400);
-  canvas.style.width = size + 'px';
-  canvas.style.height = size + 'px';
-  renderer.setSize(size, size);
-  camera.aspect = 1;
-  camera.updateProjectionMatrix();
+// ─── Resize (responsive cube size) ───
+function resize(){
+  const panel=document.getElementById('cubePanel');
+  const w=panel.clientWidth;
+  const isMobile=window.innerWidth<=900;
+  const maxH=isMobile?200:Math.min(panel.clientHeight*0.55,400);
+  const size=Math.min(w-32,maxH);
+  canvas.style.width=size+'px';
+  canvas.style.height=size+'px';
+  renderer.setSize(size,size);
+  camera.aspect=1;camera.updateProjectionMatrix();
+  setCubeTop();
 }
-window.addEventListener('resize', resize);
-resize();
+window.addEventListener('resize',resize);
+setTimeout(resize,50);
 
 // ─── Orbit ───
-let orbiting = false, orbitStart = { x: 0, y: 0 };
-let spherical = { theta: Math.PI / 4.2, phi: Math.PI / 7 };
-const ORBIT_R = 7.8;
-
-function updateCam() {
-  const { theta, phi } = spherical;
+let orbiting=false,orbitStart={x:0,y:0};
+let spherical={theta:Math.PI/4.2,phi:Math.PI/7};
+const ORBIT_R=7.8;
+function updateCam(){
+  const{theta,phi}=spherical;
   camera.position.set(
-    ORBIT_R * Math.cos(phi) * Math.sin(theta),
-    ORBIT_R * Math.sin(phi),
-    ORBIT_R * Math.cos(phi) * Math.cos(theta)
-  );
-  camera.lookAt(0, 0, 0);
+    ORBIT_R*Math.cos(phi)*Math.sin(theta),
+    ORBIT_R*Math.sin(phi),
+    ORBIT_R*Math.cos(phi)*Math.cos(theta)
+  );camera.lookAt(0,0,0);
 }
 updateCam();
 
-canvas.addEventListener('mousedown', e => { orbiting = true; orbitStart = { x: e.clientX, y: e.clientY }; });
-canvas.addEventListener('touchstart', e => { orbiting = true; orbitStart = { x: e.touches[0].clientX, y: e.touches[0].clientY }; e.preventDefault(); }, { passive: false });
-window.addEventListener('mousemove', e => {
-  if (!orbiting) return;
-  spherical.theta -= (e.clientX - orbitStart.x) * 0.007;
-  spherical.phi += (e.clientY - orbitStart.y) * 0.007;
-  spherical.phi = Math.max(-1.2, Math.min(1.2, spherical.phi));
-  orbitStart = { x: e.clientX, y: e.clientY };
+canvas.addEventListener('pointerdown',e=>{
+  if(e.pointerType==='touch'||e.button===0){
+    orbiting=true;orbitStart={x:e.clientX,y:e.clientY};
+    canvas.setPointerCapture(e.pointerId);
+  }
+});
+canvas.addEventListener('pointermove',e=>{
+  if(!orbiting)return;
+  spherical.theta-=(e.clientX-orbitStart.x)*0.007;
+  spherical.phi+=(e.clientY-orbitStart.y)*0.007;
+  spherical.phi=Math.max(-1.2,Math.min(1.2,spherical.phi));
+  orbitStart={x:e.clientX,y:e.clientY};
   updateCam();
 });
-window.addEventListener('touchmove', e => {
-  if (!orbiting) return;
-  spherical.theta -= (e.touches[0].clientX - orbitStart.x) * 0.007;
-  spherical.phi += (e.touches[0].clientY - orbitStart.y) * 0.007;
-  spherical.phi = Math.max(-1.2, Math.min(1.2, spherical.phi));
-  orbitStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-  updateCam();
-}, { passive: false });
-window.addEventListener('mouseup', () => orbiting = false);
-window.addEventListener('touchend', () => orbiting = false);
+canvas.addEventListener('pointerup',()=>orbiting=false);
+canvas.addEventListener('pointercancel',()=>orbiting=false);
 
 // ─── Move definitions ───
-const HALF = Math.PI / 2;
-const MOVE_DEFS = {
-  'R':  { axis: 'x', layer:  1, angle: -HALF },
-  "R'": { axis: 'x', layer:  1, angle:  HALF },
-  'R2': { axis: 'x', layer:  1, angle: -Math.PI },
-  'L':  { axis: 'x', layer: -1, angle:  HALF },
-  "L'": { axis: 'x', layer: -1, angle: -HALF },
-  'L2': { axis: 'x', layer: -1, angle:  Math.PI },
-  'U':  { axis: 'y', layer:  1, angle: -HALF },
-  "U'": { axis: 'y', layer:  1, angle:  HALF },
-  'U2': { axis: 'y', layer:  1, angle: -Math.PI },
-  'D':  { axis: 'y', layer: -1, angle:  HALF },
-  "D'": { axis: 'y', layer: -1, angle: -HALF },
-  'D2': { axis: 'y', layer: -1, angle:  Math.PI },
-  'F':  { axis: 'z', layer:  1, angle: -HALF },
-  "F'": { axis: 'z', layer:  1, angle:  HALF },
-  'F2': { axis: 'z', layer:  1, angle: -Math.PI },
-  'B':  { axis: 'z', layer: -1, angle:  HALF },
-  "B'": { axis: 'z', layer: -1, angle: -HALF },
-  'B2': { axis: 'z', layer: -1, angle:  Math.PI },
+const HALF=Math.PI/2;
+const MOVE_DEFS={
+  'R':{axis:'x',layer:1,angle:-HALF},"R'":{axis:'x',layer:1,angle:HALF},
+  'R2':{axis:'x',layer:1,angle:-Math.PI},
+  'L':{axis:'x',layer:-1,angle:HALF},"L'":{axis:'x',layer:-1,angle:-HALF},
+  'L2':{axis:'x',layer:-1,angle:Math.PI},
+  'U':{axis:'y',layer:1,angle:-HALF},"U'":{axis:'y',layer:1,angle:HALF},
+  'U2':{axis:'y',layer:1,angle:-Math.PI},
+  'D':{axis:'y',layer:-1,angle:HALF},"D'":{axis:'y',layer:-1,angle:-HALF},
+  'D2':{axis:'y',layer:-1,angle:Math.PI},
+  'F':{axis:'z',layer:1,angle:-HALF},"F'":{axis:'z',layer:1,angle:HALF},
+  'F2':{axis:'z',layer:1,angle:-Math.PI},
+  'B':{axis:'z',layer:-1,angle:HALF},"B'":{axis:'z',layer:-1,angle:-HALF},
+  'B2':{axis:'z',layer:-1,angle:Math.PI},
+};
+const AXIS_VEC={
+  x:new THREE.Vector3(1,0,0),
+  y:new THREE.Vector3(0,1,0),
+  z:new THREE.Vector3(0,0,1),
 };
 
-const AXIS_VEC = {
-  x: new THREE.Vector3(1, 0, 0),
-  y: new THREE.Vector3(0, 1, 0),
-  z: new THREE.Vector3(0, 0, 1),
-};
+// ─── Animation ───
+let currentAnim=null;
+const ANIM_DUR=0.28;
 
-// ─── Animation state ───
-let currentAnim = null; // { pivot, layer, axisVec, targetAngle, currentAngle, duration, elapsed, resolve }
-const ANIM_DUR = 0.28;
-
-function animateMove(moveName) {
-  return new Promise(resolve => {
-    const def = MOVE_DEFS[moveName];
-    if (!def) { resolve(); return; }
-
-    const spacing = 1 + GAP;
-    const layer = allCubies.filter(c => c[def.axis] === def.layer);
-    const pivot = new THREE.Object3D();
-    cubeGroup.add(pivot);
-
-    layer.forEach(c => {
-      // Reparent cubie group under pivot
-      cubeGroup.remove(c.group);
-      pivot.add(c.group);
-    });
-
-    currentAnim = {
-      pivot,
-      layer,
-      axisVec: AXIS_VEC[def.axis],
-      axisName: def.axis,
-      targetAngle: def.angle,
-      elapsed: 0,
-      duration: Math.abs(def.angle) > HALF + 0.1 ? ANIM_DUR * 1.5 : ANIM_DUR,
-      resolve,
+function animateMove(name){
+  return new Promise(resolve=>{
+    const def=MOVE_DEFS[name];if(!def){resolve();return;}
+    const layer=allCubies.filter(c=>c[def.axis]===def.layer);
+    const pivot=new THREE.Object3D();cubeGroup.add(pivot);
+    layer.forEach(c=>{cubeGroup.remove(c.group);pivot.add(c.group);});
+    currentAnim={
+      pivot,layer,
+      axisVec:AXIS_VEC[def.axis],axisName:def.axis,
+      targetAngle:def.angle,elapsed:0,
+      duration:Math.abs(def.angle)>HALF+0.1?ANIM_DUR*1.5:ANIM_DUR,
+      resolve
     };
   });
 }
 
-function finishAnim() {
-  if (!currentAnim) return;
-  const { pivot, layer, axisVec, axisName, targetAngle, resolve } = currentAnim;
-
-  // Snap the pivot rotation to exact target
-  pivot.rotation.set(0, 0, 0);
-  pivot.rotateOnWorldAxis(axisVec, targetAngle);
+function finishAnim(){
+  if(!currentAnim)return;
+  const{pivot,layer,axisVec,targetAngle,resolve}=currentAnim;
+  pivot.rotation.set(0,0,0);
+  pivot.rotateOnWorldAxis(axisVec,targetAngle);
   pivot.updateMatrixWorld(true);
-
-  const spacing = 1 + GAP;
-
-  layer.forEach(c => {
-    // Get world position/quaternion
-    const wp = new THREE.Vector3();
-    const wq = new THREE.Quaternion();
-    const ws = new THREE.Vector3();
-    c.group.getWorldPosition(wp);
-    c.group.getWorldQuaternion(wq);
-    c.group.getWorldScale(ws);
-
-    // Remove from pivot
+  const sp=1+GAP;
+  layer.forEach(c=>{
+    const wp=new THREE.Vector3(),wq=new THREE.Quaternion();
+    c.group.getWorldPosition(wp);c.group.getWorldQuaternion(wq);
     pivot.remove(c.group);
-
-    // Convert world to cubeGroup local
-    const invMat = new THREE.Matrix4().copy(cubeGroup.matrixWorld).invert();
-    const localPos = wp.clone().applyMatrix4(invMat);
-
-    c.group.position.copy(localPos);
-    // For quaternion, remove cubeGroup's world rotation
-    const cgWorldQ = new THREE.Quaternion();
-    cubeGroup.getWorldQuaternion(cgWorldQ);
-    const cgInvQ = cgWorldQ.clone().invert();
-    c.group.quaternion.copy(cgInvQ.multiply(wq));
-
+    const inv=new THREE.Matrix4().copy(cubeGroup.matrixWorld).invert();
+    const lp=wp.clone().applyMatrix4(inv);
+    c.group.position.copy(lp);
+    const cgQ=new THREE.Quaternion();cubeGroup.getWorldQuaternion(cgQ);
+    c.group.quaternion.copy(cgQ.clone().invert().multiply(wq));
     cubeGroup.add(c.group);
-
-    // Update logical position (snap)
-    c.x = Math.round(localPos.x / spacing);
-    c.y = Math.round(localPos.y / spacing);
-    c.z = Math.round(localPos.z / spacing);
-
-    // Snap visual position
-    c.group.position.set(c.x * spacing, c.y * spacing, c.z * spacing);
+    c.x=Math.round(lp.x/sp);c.y=Math.round(lp.y/sp);c.z=Math.round(lp.z/sp);
+    c.group.position.set(c.x*sp,c.y*sp,c.z*sp);
   });
-
   cubeGroup.remove(pivot);
-  currentAnim = null;
-  resolve();
+  currentAnim=null;resolve();
 }
 
-// ─── Render loop ───
-const clock = new THREE.Clock();
-function renderLoop() {
+const clock=new THREE.Clock();
+(function renderLoop(){
   requestAnimationFrame(renderLoop);
-
-  if (currentAnim) {
-    const dt = Math.min(clock.getDelta(), 0.05);
-    currentAnim.elapsed += dt;
-    let t = Math.min(currentAnim.elapsed / currentAnim.duration, 1);
-    // Cubic ease in-out
-    const ease = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3) / 2;
-    const angle = currentAnim.targetAngle * ease;
-
-    currentAnim.pivot.rotation.set(0, 0, 0);
-    currentAnim.pivot.rotateOnWorldAxis(currentAnim.axisVec, angle);
-
-    if (t >= 1) {
-      finishAnim();
-    }
+  if(currentAnim){
+    currentAnim.elapsed+=Math.min(clock.getDelta(),0.05);
+    let t=Math.min(currentAnim.elapsed/currentAnim.duration,1);
+    const ease=t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+    currentAnim.pivot.rotation.set(0,0,0);
+    currentAnim.pivot.rotateOnWorldAxis(currentAnim.axisVec,currentAnim.targetAngle*ease);
+    if(t>=1)finishAnim();
   }
-
-  renderer.render(scene, camera);
-}
+  renderer.render(scene,camera);
+})();
 clock.getDelta();
-renderLoop();
 
 // ─── Move queue ───
-let moveQueue = [];
-let processing = false;
-
-async function processQueue() {
-  if (processing) return;
-  processing = true;
-  setDisabled(true);
-
-  while (moveQueue.length > 0) {
-    const m = moveQueue.shift();
-    await animateMove(m);
-  }
-
-  setDisabled(false);
-  processing = false;
-  if (pbMoves.length > 0) updatePbDisplay();
+let moveQueue=[],processing=false;
+async function processQueue(){
+  if(processing)return;processing=true;setDisabled(true);
+  while(moveQueue.length>0)await animateMove(moveQueue.shift());
+  setDisabled(false);processing=false;
+  if(pbMoves.length>0)updatePbDisplay();
+}
+function execMove(m){moveQueue.push(m);processQueue();}
+function setDisabled(d){
+  document.querySelectorAll('.move-btn').forEach(b=>b.disabled=d);
+  document.querySelectorAll('.play-btn').forEach(b=>b.disabled=d);
+  document.querySelectorAll('.notation-card').forEach(b=>b.style.pointerEvents=d?'none':'auto');
 }
 
-function execMove(m) {
-  moveQueue.push(m);
-  processQueue();
-}
-
-function setDisabled(d) {
-  document.querySelectorAll('.move-btn').forEach(b => b.disabled = d);
-  document.querySelectorAll('.play-btn').forEach(b => b.disabled = d);
-  document.querySelectorAll('.notation-card').forEach(b => b.style.pointerEvents = d ? 'none' : 'auto');
-}
-
-// ─── Reset / Scramble ───
-function resetCube() {
-  moveQueue = [];
-  if (currentAnim) finishAnim();
+function resetCube(){
+  moveQueue=[];if(currentAnim)finishAnim();
   buildFullCube();
-  document.getElementById('scrambleBar').style.display = 'none';
+  document.getElementById('scrambleBar').style.display='none';
 }
 
-function scrambleCube() {
+function scrambleCube(){
   resetCube();
-  const moves = ['R',"R'",'L',"L'",'U',"U'",'D',"D'",'F',"F'",'B',"B'",'R2','L2','U2','D2','F2','B2'];
-  const scramble = [];
-  let last = '';
-  for (let i = 0; i < 20; i++) {
-    let m;
-    do { m = moves[Math.floor(Math.random() * moves.length)]; } while (m[0] === last[0]);
-    scramble.push(m); last = m;
-  }
-  document.getElementById('scrambleBar').style.display = 'block';
-  document.getElementById('scrambleMoves').textContent = scramble.join('  ');
-  scramble.forEach(m => moveQueue.push(m));
-  processQueue();
+  const ms=['R',"R'",'L',"L'",'U',"U'",'D',"D'",'F',"F'",'B',"B'",'R2','L2','U2','D2','F2','B2'];
+  const sc=[];let last='';
+  for(let i=0;i<20;i++){let m;do{m=ms[Math.floor(Math.random()*ms.length)];}while(m[0]===last[0]);sc.push(m);last=m;}
+  document.getElementById('scrambleBar').style.display='block';
+  document.getElementById('scrambleMoves').textContent=sc.join('  ');
+  sc.forEach(m=>moveQueue.push(m));processQueue();
 }
 
 // ─── Playback ───
-let pbMoves = [];
-let pbIndex = 0;
+let pbMoves=[],pbIndex=0;
 
-function playAlgorithm(movesStr) {
-  resetCube();
-  pbMoves = movesStr.split(/\s+/).filter(Boolean);
-  pbIndex = 0;
+function playAlgorithm(str){
+  resetCube();pbMoves=str.split(/\s+/).filter(Boolean);pbIndex=0;
   document.getElementById('playbackBar').classList.add('visible');
+  // On mobile, scroll up so cube is visible
+  window.scrollTo({top:0,behavior:'smooth'});
+  resize(); // recalc after playback bar appears
   updatePbDisplay();
 }
-
-function updatePbDisplay() {
-  const d = document.getElementById('playbackStep');
-  d.innerHTML = `${pbIndex}/${pbMoves.length} &nbsp; ` + pbMoves.map((m, i) => {
-    if (i < pbIndex) return `<span style="color:var(--text-dim)">${m}</span>`;
-    if (i === pbIndex) return `<span style="color:var(--accent);text-decoration:underline">${m}</span>`;
+function updatePbDisplay(){
+  const d=document.getElementById('playbackStep');
+  d.innerHTML=pbIndex+'/'+pbMoves.length+' '+pbMoves.map((m,i)=>{
+    if(i<pbIndex)return'<span style="color:var(--text-dim)">'+m+'</span>';
+    if(i===pbIndex)return'<span style="color:var(--accent);text-decoration:underline">'+m+'</span>';
     return m;
   }).join(' ');
-  document.getElementById('pbPrevBtn').disabled = pbIndex <= 0 || processing;
-  document.getElementById('pbNextBtn').disabled = pbIndex >= pbMoves.length || processing;
+  document.getElementById('pbPrevBtn').disabled=pbIndex<=0||processing;
+  document.getElementById('pbNextBtn').disabled=pbIndex>=pbMoves.length||processing;
 }
-
-function pbNext() {
-  if (pbIndex >= pbMoves.length || processing) return;
-  moveQueue.push(pbMoves[pbIndex]);
-  pbIndex++;
+function pbNext(){
+  if(pbIndex>=pbMoves.length||processing)return;
+  moveQueue.push(pbMoves[pbIndex]);pbIndex++;processQueue();
+}
+function pbPrev(){
+  if(pbIndex<=0||processing)return;
+  pbIndex--;resetCube();
+  for(let i=0;i<pbIndex;i++)moveQueue.push(pbMoves[i]);
   processQueue();
 }
-
-function pbPrev() {
-  if (pbIndex <= 0 || processing) return;
-  pbIndex--;
-  resetCube();
-  for (let i = 0; i < pbIndex; i++) moveQueue.push(pbMoves[i]);
-  processQueue();
-}
-
-function pbStop() {
-  pbMoves = []; pbIndex = 0;
+function pbStop(){
+  pbMoves=[];pbIndex=0;
   document.getElementById('playbackBar').classList.remove('visible');
+  resize();
 }
 
 // ─── Data ───
-const STEPS = [
-  { name: 'White Cross', desc: 'Form a white "+" on top with edge colors matching adjacent centers.', tips: 'Find white edges. Bring each to the top aligned with its matching center color.',
-    algos: [{ name: 'Edge Flip', moves: "F U R U' R' F'", desc: 'Flip a misoriented edge' }]
-  },
-  { name: 'White Corners', desc: 'Complete the white face by inserting corners with correct side colors.', tips: 'Find white corners in the bottom layer. Position below the target slot and repeat.',
-    algos: [
-      { name: 'Right Insert', moves: "R U R' U'", desc: 'Insert corner from bottom-right' },
-      { name: 'Left Insert', moves: "L' U' L U", desc: 'Insert corner from bottom-left' }
-    ]
-  },
-  { name: 'Second Layer', desc: 'Insert middle layer edges (pieces without yellow).', tips: 'White on bottom. Find non-yellow edges on top, align with center, then insert.',
-    algos: [
-      { name: 'Insert Right', moves: "U R U' R' U' F' U F", desc: 'Top edge into right slot' },
-      { name: 'Insert Left', moves: "U' L' U L U F U' F'", desc: 'Top edge into left slot' }
-    ]
-  },
-  { name: 'Yellow Cross', desc: 'Form a yellow "+" on top (edges only).', tips: 'You may see a dot, L, or line. Apply the algorithm to progress to a full cross.',
-    algos: [{ name: 'Yellow Cross', moves: "F R U R' U' F'", desc: 'Dot → L → Line → Cross' }]
-  },
-  { name: 'Yellow Face', desc: 'Orient all yellow corners so the entire top is yellow.', tips: 'Hold an unsolved corner at front-right. Repeat, adjusting U between applications.',
-    algos: [
-      { name: 'Sune', moves: "R U R' U R U2 R'", desc: 'Classic corner orientation' },
-      { name: 'Anti-Sune', moves: "R U2 R' U' R U' R'", desc: 'Mirror Sune' }
-    ]
-  },
-  { name: 'Position Corners', desc: 'Move last layer corners to their correct positions.', tips: 'Find a face where both top corners match. Place it at the back and apply.',
-    algos: [
-      { name: 'T-Perm', moves: "R U R' U' R' F R2 U' R' U' R U R' F'", desc: 'Adjacent corner swap' },
-      { name: 'Y-Perm', moves: "F R U' R' U' R U R' F' R U R' U' R' F R F'", desc: 'Diagonal corner swap' }
-    ]
-  },
-  { name: 'Position Edges', desc: 'Cycle the final edges to complete the solve!', tips: 'If one face is complete, place it at the back and apply a U-perm.',
-    algos: [
-      { name: 'Ua-Perm', moves: "R U' R U R U R U' R' U' R2", desc: '3-edge cycle CCW' },
-      { name: 'Ub-Perm', moves: "R2 U R U R' U' R' U' R' U R'", desc: '3-edge cycle CW' },
-      { name: 'H-Perm', moves: "R2 U2 R U2 R2 U2 R2 U2 R U2 R2", desc: 'Opposite edge swap' }
-    ]
-  }
-];
+const STEPS=[
+  {name:'White Cross',
+   desc:'Form a white "+" on the top face. Each white edge must also match the center color of its adjacent side.',
+   tips:'Hold the cube with white center on top. Look for white edge pieces anywhere on the cube — they might be on the bottom, middle, or top layer but flipped wrong.',
+   how:'This step is intuitive — no fixed algorithms needed yet. Find each white edge and maneuver it to the top so the white sticker faces up AND the side color matches the adjacent center. Work one edge at a time.',
+   algos:[{name:'Edge Flip',moves:"F U R U' R' F'",desc:'Fix a white edge that is in the top layer but flipped the wrong way',
+     when:'The white edge is in the correct top-layer position but the white sticker faces the side instead of up. The side color is correct but the edge is "flipped."',
+     pattern:'xexxyxxex',patternNote:'Edge in place but flipped'}]},
 
-const ALGO_LIB = [
-  { title: 'OLL — Orientation', badge: '5 essential',
-    algos: [
-      { name: 'OLL Cross', moves: "F R U R' U' F'", desc: 'Create yellow cross' },
-      { name: 'Sune', moves: "R U R' U R U2 R'", desc: 'Orient corners' },
-      { name: 'Anti-Sune', moves: "R U2 R' U' R U' R'", desc: 'Mirror Sune' },
-      { name: 'Bowtie', moves: "F' r U R' U' r' F R", desc: 'Two adjacent corners' },
-      { name: 'Bruno', moves: "r U R' U' r' F R F'", desc: 'Single corner twist' }
-    ]
-  },
-  { title: 'PLL — Permutation', badge: '8 essential',
-    algos: [
-      { name: 'T-Perm', moves: "R U R' U' R' F R2 U' R' U' R U R' F'", desc: 'Adjacent corner swap' },
-      { name: 'Y-Perm', moves: "F R U' R' U' R U R' F' R U R' U' R' F R F'", desc: 'Diagonal corner swap' },
-      { name: 'Ua-Perm', moves: "R U' R U R U R U' R' U' R2", desc: '3-edge cycle CCW' },
-      { name: 'Ub-Perm', moves: "R2 U R U R' U' R' U' R' U R'", desc: '3-edge cycle CW' },
-      { name: 'H-Perm', moves: "R2 U2 R U2 R2 U2 R2 U2 R U2 R2", desc: 'Opposite edge swap' },
-      { name: 'Z-Perm', moves: "R' U' R U' R U R U' R' U R U R2 U' R'", desc: 'Adjacent edge swap' },
-      { name: 'Aa-Perm', moves: "R' F R' B2 R F' R' B2 R2", desc: 'Corner 3-cycle CW' },
-      { name: 'Ab-Perm', moves: "R2 B2 R F R' B2 R F' R", desc: 'Corner 3-cycle CCW' }
-    ]
-  },
-  { title: 'F2L — First Two Layers', badge: '4 basic',
-    algos: [
-      { name: 'Basic Right', moves: "U R U' R'", desc: 'Pair to right slot' },
-      { name: 'Basic Left', moves: "U' L' U L", desc: 'Pair to left slot' },
-      { name: 'Split Right', moves: "U R U' R' U' F' U F", desc: 'Edge on top → right' },
-      { name: 'Split Left', moves: "U' L' U L U F U' F'", desc: 'Edge on top → left' }
-    ]
-  }
-];
+  {name:'White Corners',
+   desc:'Insert the 4 white corner pieces to complete the entire first layer.',
+   tips:'Flip the cube so white is now on the BOTTOM. Find white corner pieces — they will be in the top layer or stuck in the wrong bottom slot.',
+   how:'Position the target corner directly above the slot where it needs to go (the bottom-right or bottom-left position on the front face). Then repeat the insert algorithm until it drops in correctly. You may need 1, 3, or 5 repetitions.',
+   algos:[
+     {name:'Right Insert',moves:"R U R' U'",desc:'Insert corner piece from above into the front-right slot',
+      when:'The white corner is in the <b>top layer</b> and you\'ve positioned it directly <b>above its target slot</b> on the right side. The target slot is at front-right-bottom. Repeat this algorithm 1, 3, or 5 times until the corner seats correctly.',
+      pattern:null,patternNote:null},
+     {name:'Left Insert',moves:"L' U' L U",desc:'Mirror version — insert into the front-left slot',
+      when:'Same situation but the corner needs to go to the <b>front-left-bottom</b> slot instead. Use this when working the left side is more convenient.',
+      pattern:null,patternNote:null}
+   ]},
 
-const NOTATIONS = [
-  { s: 'R', l: 'Right clockwise' }, { s: "R'", l: 'Right counter-CW' },
-  { s: 'L', l: 'Left clockwise' }, { s: "L'", l: 'Left counter-CW' },
-  { s: 'U', l: 'Up clockwise' }, { s: "U'", l: 'Up counter-CW' },
-  { s: 'D', l: 'Down clockwise' }, { s: "D'", l: 'Down counter-CW' },
-  { s: 'F', l: 'Front clockwise' }, { s: "F'", l: 'Front counter-CW' },
-  { s: 'B', l: 'Back clockwise' }, { s: "B'", l: 'Back counter-CW' },
+  {name:'Second Layer Edges',
+   desc:'With white on the bottom, insert the 4 middle-layer edge pieces (the ones with no yellow).',
+   tips:'Look at the top layer for edges that have NO yellow. These belong in the middle layer. Rotate the top (U) until the edge\'s front color matches the front center.',
+   how:'Once an edge on top is aligned with its matching center, check where the edge needs to go — right or left — by looking at the color on top of that edge. If the top color matches the RIGHT center, use Insert Right. If it matches the LEFT center, use Insert Left.',
+   algos:[
+     {name:'Insert Right',moves:"U R U' R' U' F' U F",desc:'Edge slides from top into the right-side slot',
+      when:'Non-yellow edge is on top. You\'ve aligned its <b>front color with the front center</b>. The <b>top color of the edge matches the RIGHT side center</b>. This tells you the edge belongs to the right.',
+      pattern:null,patternNote:'Top color matches right center'},
+     {name:'Insert Left',moves:"U' L' U L U F U' F'",desc:'Edge slides from top into the left-side slot',
+      when:'Same setup, but the <b>top color matches the LEFT side center</b>. The edge needs to go left.',
+      pattern:null,patternNote:'Top color matches left center'}
+   ]},
+
+  {name:'Yellow Cross',
+   desc:'Create a yellow "+" on top. Only edges matter here — ignore corners for now.',
+   tips:'Look at the top face. You\'ll see one of three patterns: a dot (no yellow edges facing up), an L-shape (two adjacent yellow edges), or a line (two opposite yellow edges). Apply the same algorithm to progress through: Dot → L → Line → Cross.',
+   how:'This is the first step where pattern recognition is key. Hold the cube so the pattern is oriented correctly, then apply the algorithm. For the L-shape, hold it in the back-left corner. For the line, hold it horizontal (left-right).',
+   algos:[{name:'Yellow Cross',moves:"F R U R' U' F'",desc:'Transforms the pattern one step closer to a full cross',
+     when:'Look at yellow edges on the top face:<br><b>Dot</b> (0 edges yellow up) → apply once → get L<br><b>L-shape</b> (2 adjacent) → hold L in back-left, apply → get Line<br><b>Line</b> (2 opposite) → hold line horizontal, apply → get Cross',
+     pattern:'xexxxexxx',patternNote:'L-shape: hold in back-left'}]},
+
+  {name:'Yellow Face',
+   desc:'Orient all 4 yellow corners so the entire top face is solid yellow.',
+   tips:'Count how many yellow corners are already facing up: 0, 1, or 2. This determines which algorithm to use and how to hold the cube.',
+   how:'Position the cube based on what you see, then apply the right algorithm. Sune and Anti-Sune are mirrors of each other — the difference is where the single solved corner sits.',
+   algos:[
+     {name:'Sune',moves:"R U R' U R U2 R'",desc:'The most common last-layer orientation algorithm',
+      when:'Look at yellow corners facing up:<br><b>1 corner yellow-up:</b> Hold that corner at <b>front-left</b> → apply Sune<br><b>0 corners yellow-up:</b> Find a corner where yellow is on the <b>left side</b> (facing you on the front-left), place it at front-left → apply Sune<br><b>2 corners yellow-up:</b> Try Sune with one of the unsolved corners at front-right',
+      pattern:'xxyxyxyxx',patternNote:'1 corner solved (front-left)'},
+     {name:'Anti-Sune',moves:"R U2 R' U' R U' R'",desc:'Mirror of Sune — used when Sune would take more repetitions',
+      when:'<b>1 corner yellow-up:</b> Hold that corner at <b>front-right</b> instead → apply Anti-Sune<br><b>0 corners:</b> Find a corner where yellow faces the <b>right side</b>, put it at front-right → Anti-Sune<br>If unsure, just use Sune repeatedly — it always works, Anti-Sune is just faster in some cases.',
+      pattern:'xxyxyxxyy',patternNote:'1 corner solved (front-right)'}
+   ]},
+
+  {name:'Position Corners (PLL)',
+   desc:'All yellow is facing up now, but the corner pieces may be in the wrong positions. Swap them into place.',
+   tips:'Look at the SIDE colors of the top-layer corners (not the top — that\'s already yellow). Check if any face has both its top corners matching each other.',
+   how:'Rotate the top layer (U turns) and check each face. You\'re looking for a face where both top corners share the same color on that side. Once found, put that face at the BACK.',
+   algos:[
+     {name:'T-Perm',moves:"R U R' U' R' F R2 U' R' U' R U R' F'",desc:'Swap two adjacent corners while preserving edges',
+      when:'<b>One face has matching corners</b> (both top corners on that side are the same color). Place that face at the <b>back</b>. The two front corners need to swap. Apply T-Perm.',
+      pattern:null,patternNote:'Matching pair → back face'},
+     {name:'Y-Perm',moves:"F R U' R' U' R U R' F' R U R' U' R' F R F'",desc:'Swap two diagonal corners',
+      when:'<b>NO face has matching corners</b> — every side has two different colors on its top corners. Apply Y-Perm from any angle. After one application, one face should now have matching corners, so you can then apply T-Perm if needed.',
+      pattern:null,patternNote:'No matching pairs anywhere'}
+   ]},
+
+  {name:'Position Edges (PLL)',
+   desc:'The final step! The corners are placed correctly but the edges may need to cycle into position.',
+   tips:'Look at each side face. The corners are correct but the edge between them may be wrong. Check if any face is fully solved (both corners + edge all match).',
+   how:'Count how many faces are fully solved (all 3 top-layer stickers on that side match). This tells you which algorithm to use.',
+   algos:[
+     {name:'Ua-Perm',moves:"R U' R U R U R U' R' U' R2",desc:'Cycle 3 edges counter-clockwise',
+      when:'<b>Exactly 1 face is fully solved</b> (corners + edge match). Place that solved face at the <b>back</b>. The remaining 3 edges need to cycle. Look at the front edge — does it belong to the <b>left</b> side? If so, edges cycle <b>counter-clockwise</b> → Ua-Perm.',
+      pattern:null,patternNote:'Solved face at back, edges go CCW'},
+     {name:'Ub-Perm',moves:"R2 U R U R' U' R' U' R' U R'",desc:'Cycle 3 edges clockwise',
+      when:'<b>Exactly 1 face solved</b>, placed at <b>back</b>. The front edge belongs to the <b>right</b> side, so edges cycle <b>clockwise</b> → Ub-Perm.',
+      pattern:null,patternNote:'Solved face at back, edges go CW'},
+     {name:'H-Perm',moves:"R2 U2 R U2 R2 U2 R2 U2 R U2 R2",desc:'Swap 2 pairs of opposite edges simultaneously',
+      when:'<b>0 faces fully solved</b> — every face has correct corners but a wrong edge. The edges need to swap in opposite pairs. Apply H-Perm from any angle.',
+      pattern:null,patternNote:'No face fully solved, opposite swaps'}
+   ]}
+];
+const ALGO_LIB=[
+  {title:'OLL — Orientation',badge:'5 essential',algos:[
+    {name:'OLL Cross',moves:"F R U R' U' F'",desc:'Create yellow cross',
+     when:'Top has a dot (0 edges), L-shape (2 adjacent), or line (2 opposite). Apply to progress toward a full cross.'},
+    {name:'Sune',moves:"R U R' U R U2 R'",desc:'Orient corners',
+     when:'1 yellow corner facing up → place it at front-left. Or 0 corners up with yellow on left side of front-left corner.'},
+    {name:'Anti-Sune',moves:"R U2 R' U' R U' R'",desc:'Mirror Sune',
+     when:'1 yellow corner facing up → place it at front-right. Mirror case of Sune.'},
+    {name:'Headlights',moves:"R2 D R' U2 R D' R' U2 R'",desc:'Two adjacent corners oriented',
+     when:'2 solved yellow corners sit on the same side (like headlights). Place them at the back.'},
+    {name:'Chameleon',moves:"F R U R' U' F'",desc:'Reapply cross alg for remaining cases',
+     when:'Unusual corner orientation — if other OLLs don\'t match, this can resolve it.'}]},
+  {title:'PLL — Permutation',badge:'8 essential',algos:[
+    {name:'T-Perm',moves:"R U R' U' R' F R2 U' R' U' R U R' F'",desc:'Adjacent corner swap',
+     when:'One face has both top corners matching. Put it at the back → swap the two front corners.'},
+    {name:'Y-Perm',moves:"F R U' R' U' R U R' F' R U R' U' R' F R F'",desc:'Diagonal corner swap',
+     when:'No face has matching top corners. Apply from any angle to create a matching pair.'},
+    {name:'Ua-Perm',moves:"R U' R U R U R U' R' U' R2",desc:'3-edge cycle CCW',
+     when:'1 solved face (at back). Front edge belongs to the left side → edges cycle counter-clockwise.'},
+    {name:'Ub-Perm',moves:"R2 U R U R' U' R' U' R' U R'",desc:'3-edge cycle CW',
+     when:'1 solved face (at back). Front edge belongs to the right side → edges cycle clockwise.'},
+    {name:'H-Perm',moves:"R2 U2 R U2 R2 U2 R2 U2 R U2 R2",desc:'Opposite edge swap',
+     when:'0 solved faces — every edge is wrong. Opposite edges need to swap. Apply from any angle.'},
+    {name:'Z-Perm',moves:"R' U' R U' R U R U' R' U R U R2 U' R'",desc:'Adjacent edge swap',
+     when:'0 solved faces but adjacent (not opposite) edges need to swap.'},
+    {name:'Aa-Perm',moves:"R' F R' B2 R F' R' B2 R2",desc:'Corner 3-cycle CW',
+     when:'3 corners need to cycle clockwise (1 is correct). Place the correct corner at front-right.'},
+    {name:'Ab-Perm',moves:"R2 B2 R F R' B2 R F' R",desc:'Corner 3-cycle CCW',
+     when:'3 corners need to cycle counter-clockwise. Place the correct corner at front-left.'}]},
+  {title:'F2L — First Two Layers',badge:'4 basic',algos:[
+    {name:'Basic Right',moves:"U R U' R'",desc:'Pair to right slot',
+     when:'Corner and edge are already paired in the top layer and need to drop into the right slot.'},
+    {name:'Basic Left',moves:"U' L' U L",desc:'Pair to left slot',
+     when:'Corner and edge are paired and need to drop into the left slot.'},
+    {name:'Split Right',moves:"U R U' R' U' F' U F",desc:'Edge on top → right',
+     when:'Edge is in the top layer (no yellow), front color matches front center, top color matches the right center.'},
+    {name:'Split Left',moves:"U' L' U L U F U' F'",desc:'Edge on top → left',
+     when:'Edge is in top layer, front color matches front center, top color matches the left center.'}]}
+];
+const NOTATIONS=[
+  {s:'R',l:'Right CW'},{s:"R'",l:'Right CCW'},
+  {s:'L',l:'Left CW'},{s:"L'",l:'Left CCW'},
+  {s:'U',l:'Up CW'},{s:"U'",l:'Up CCW'},
+  {s:'D',l:'Down CW'},{s:"D'",l:'Down CCW'},
+  {s:'F',l:'Front CW'},{s:"F'",l:'Front CCW'},
+  {s:'B',l:'Back CW'},{s:"B'",l:'Back CCW'},
 ];
 
 // ─── Render pages ───
-function renderLearn() {
-  const el = document.getElementById('stepsList');
-  el.innerHTML = STEPS.map((step, i) => `
+// Safely encode moves for HTML attributes
+function encMoves(s){return s.replace(/'/g,'PRIME');}
+function decMoves(s){return s.replace(/PRIME/g,"'");}
+
+// Event delegation for play buttons and notation cards
+document.addEventListener('click',function(e){
+  const playBtn=e.target.closest('[data-algo]');
+  if(playBtn){e.stopPropagation();playAlgorithm(decMoves(playBtn.dataset.algo));return;}
+  const notCard=e.target.closest('[data-move]');
+  if(notCard){execMove(decMoves(notCard.dataset.move));return;}
+});
+
+function renderLearn(){
+  document.getElementById('stepsList').innerHTML=STEPS.map((step,i)=>`
     <div class="step-card">
       <div class="step-number">${i+1}</div>
       <div class="step-info">
         <h3>${step.name}</h3>
         <p>${step.desc}</p>
-        <p style="margin-top:6px;color:var(--green);font-size:0.78rem">${step.tips}</p>
-        ${step.algos.map(a => `
+        <p style="margin-top:5px;color:var(--green);font-size:0.72rem">${step.tips}</p>
+        ${step.how?`<p style="margin-top:6px;font-size:0.75rem;line-height:1.5;color:var(--text)">${step.how}</p>`:''}
+        ${step.algos.map(a=>{
+          // Build top-face pattern diagram if provided
+          // pattern is a 9-char string: y=yellow, x=not-yellow, e=edge-highlight, c=center
+          let patternHtml='';
+          if(a.pattern){
+            const cells=a.pattern.split('').map(ch=>{
+              if(ch==='y')return'<div class="cell y"></div>';
+              if(ch==='e')return'<div class="cell e"></div>';
+              return'<div class="cell x"></div>';
+            }).join('');
+            patternHtml=`<div class="pattern-row">
+              <div class="top-face-diagram">${cells}</div>
+              <div><div class="pattern-label">Top face pattern</div>
+              <div style="font-size:0.7rem;color:var(--text-dim)">${a.patternNote||''}</div></div>
+            </div>`;
+          }
+          return`
           <div class="algo-card">
             <div class="algo-name">${a.name}</div>
             <div class="algo-desc">${a.desc}</div>
+            ${a.when?`<div class="algo-when"><b>When to use:</b> ${a.when}</div>`:''}
+            ${patternHtml}
             <div class="algo-moves">${a.moves.split(' ').map(m=>`<span class="move">${m}</span>`).join('')}</div>
-            <button class="play-btn" onclick="event.stopPropagation();playAlgorithm('${a.moves}')">
+            <button class="play-btn" data-algo="${encMoves(a.moves)}">
               <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg> Animate
             </button>
-          </div>
-        `).join('')}
+          </div>`;
+        }).join('')}
       </div>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
 
-function renderAlgos() {
-  document.getElementById('algoSections').innerHTML = ALGO_LIB.map(sec => `
+function renderAlgos(){
+  document.getElementById('algoSections').innerHTML=ALGO_LIB.map(sec=>`
     <div class="algo-section">
       <h3>${sec.title} <span class="badge">${sec.badge}</span></h3>
-      ${sec.algos.map(a => `
+      ${sec.algos.map(a=>`
         <div class="algo-card">
           <div class="algo-name">${a.name}</div>
           <div class="algo-desc">${a.desc}</div>
+          ${a.when?`<div class="algo-when"><b>When to use:</b> ${a.when}</div>`:''}
           <div class="algo-moves">${a.moves.split(' ').map(m=>`<span class="move">${m}</span>`).join('')}</div>
-          <button class="play-btn" onclick="playAlgorithm('${a.moves}')">
+          <button class="play-btn" data-algo="${encMoves(a.moves)}">
             <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg> Animate
           </button>
-        </div>
-      `).join('')}
-    </div>
-  `).join('');
+        </div>`).join('')}
+    </div>`).join('');
 }
 
-function renderNotation() {
-  document.getElementById('notationGrid').innerHTML = NOTATIONS.map(n => `
-    <div class="notation-card" onclick="execMove('${n.s}')">
+function renderNotation(){
+  document.getElementById('notationGrid').innerHTML=NOTATIONS.map(n=>`
+    <div class="notation-card" data-move="${encMoves(n.s)}">
       <div class="symbol">${n.s}</div>
       <div class="label">${n.l}</div>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
 
 // ─── Nav ───
-document.querySelectorAll('nav button').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+document.querySelectorAll('nav button').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.getElementById('page-' + btn.dataset.tab).classList.add('active');
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById('page-'+btn.dataset.tab).classList.add('active');
+    // Scroll content to top when switching tabs
+    window.scrollTo({top:0,behavior:'smooth'});
   });
 });
 
 // ─── Timer ───
-let timerOn = false, timerStart = 0, timerInt = null, solves = [];
-function toggleTimer() {
-  const btn = document.getElementById('timerBtn');
-  if (!timerOn) {
-    timerStart = Date.now(); timerOn = true; btn.textContent = 'Stop';
-    timerInt = setInterval(() => {
-      const e = Date.now() - timerStart;
-      const s = Math.floor(e/1000), m = Math.floor(s/60), ms = e%1000;
-      document.getElementById('timerTime').textContent = `${m}:${String(s%60).padStart(2,'0')}`;
-      document.getElementById('timerMs').textContent = `.${String(ms).padStart(3,'0')}`;
-    }, 10);
-  } else {
-    timerOn = false; clearInterval(timerInt); btn.textContent = 'Start';
-    solves.unshift(Date.now() - timerStart);
-    if (solves.length > 12) solves.pop();
-    document.getElementById('timesList').innerHTML = solves.map((t,i) =>
+let timerOn=false,timerStart=0,timerInt=null,solves=[];
+function toggleTimer(){
+  const btn=document.getElementById('timerBtn');
+  if(!timerOn){
+    timerStart=Date.now();timerOn=true;btn.textContent='Stop';
+    timerInt=setInterval(()=>{
+      const e=Date.now()-timerStart,s=Math.floor(e/1000),m=Math.floor(s/60),ms=e%1000;
+      document.getElementById('timerTime').textContent=m+':'+String(s%60).padStart(2,'0');
+      document.getElementById('timerMs').textContent='.'+String(ms).padStart(3,'0');
+    },10);
+  }else{
+    timerOn=false;clearInterval(timerInt);btn.textContent='Start';
+    solves.unshift(Date.now()-timerStart);if(solves.length>12)solves.pop();
+    document.getElementById('timesList').innerHTML=solves.map((t,i)=>
       `<div class="time-entry"><span class="rank">#${i+1}</span><span class="time-val">${(t/1000).toFixed(3)}s</span></div>`
     ).join('');
   }
 }
-function resetTimerUI() {
-  timerOn = false; clearInterval(timerInt);
-  document.getElementById('timerBtn').textContent = 'Start';
-  document.getElementById('timerTime').textContent = '0:00';
-  document.getElementById('timerMs').textContent = '.000';
+function resetTimerUI(){
+  timerOn=false;clearInterval(timerInt);
+  document.getElementById('timerBtn').textContent='Start';
+  document.getElementById('timerTime').textContent='0:00';
+  document.getElementById('timerMs').textContent='.000';
 }
 
-// ─── Init ───
-renderLearn();
-renderAlgos();
-renderNotation();
+renderLearn();renderAlgos();renderNotation();
 </script>
 </body>
 </html>
