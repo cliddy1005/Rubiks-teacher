@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CubeForge — Rubik's Cube Algorithm Trainer</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0f;
+  --surface: #12121a;
+  --surface2: #1a1a28;
+  --border: #2a2a3d;
+  --text: #e8e8f0;
+  --text-dim: #8888a0;
+  --accent: #ff6b35;
+  --accent2: #ff9f1c;
+  --accent-glow: rgba(255, 107, 53, 0.3);
+  --green: #2ec4b6;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+}
+
+header {
+  padding: 16px 32px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0;
+  background: rgba(10, 10, 15, 0.92);
+  backdrop-filter: blur(20px); z-index: 100;
+}
+.logo { display: flex; align-items: center; gap: 12px; }
+.logo-icon {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 7px;
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 2px; padding: 3px; transform: rotate(-10deg);
+}
+.logo-icon span { background: rgba(0,0,0,0.3); border-radius: 1px; }
+.logo h1 {
+  font-size: 1.3rem; font-weight: 900; letter-spacing: -0.5px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+nav {
+  display: flex; gap: 4px;
+  background: var(--surface); padding: 4px; border-radius: 12px;
+  border: 1px solid var(--border);
+}
+nav button {
+  font-family: 'Outfit', sans-serif;
+  padding: 7px 18px; border: none; background: transparent;
+  color: var(--text-dim); border-radius: 8px; cursor: pointer;
+  font-size: 0.85rem; font-weight: 600; transition: all 0.2s;
+}
+nav button.active {
+  background: var(--accent); color: #fff;
+  box-shadow: 0 2px 12px var(--accent-glow);
+}
+nav button:hover:not(.active) { color: var(--text); background: var(--surface2); }
+
+.app {
+  display: grid; grid-template-columns: 1fr 1fr;
+  min-height: calc(100vh - 57px);
+}
+
+.cube-panel {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 24px; position: relative; overflow: hidden;
+}
+.cube-panel::before {
+  content: ''; position: absolute;
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+  border-radius: 50%; filter: blur(60px); opacity: 0.3;
+}
+#cubeCanvas {
+  position: relative; z-index: 1; border-radius: 16px; cursor: grab;
+}
+#cubeCanvas:active { cursor: grabbing; }
+
+.move-controls {
+  margin-top: 28px;
+  display: flex; flex-wrap: wrap; gap: 6px;
+  justify-content: center; max-width: 420px; z-index: 1;
+}
+.move-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem; font-weight: 700;
+  padding: 8px 14px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text);
+  border-radius: 8px; cursor: pointer; transition: all 0.15s;
+  min-width: 42px;
+}
+.move-btn:hover {
+  background: var(--accent); color: #fff;
+  border-color: var(--accent); transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--accent-glow);
+}
+.move-btn.action-btn { background: var(--surface2); border-color: var(--green); color: var(--green); }
+.move-btn.action-btn:hover { background: var(--green); color: #fff; }
+.move-btn:disabled { opacity: 0.4; pointer-events: none; }
+
+.info-bar {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px 18px;
+  margin-top: 18px; z-index: 1; max-width: 420px; width: 100%;
+}
+.info-bar .label {
+  font-size: 0.65rem; font-weight: 600; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;
+}
+.info-bar .content {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem; color: var(--accent2);
+  word-spacing: 4px; line-height: 1.6;
+}
+
+.playback-bar {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 10px 18px;
+  margin-top: 10px; z-index: 1; max-width: 420px; width: 100%;
+  display: none; align-items: center; gap: 10px;
+}
+.playback-bar.visible { display: flex; }
+.playback-bar .step-display {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem; color: var(--accent); flex: 1; font-weight: 600;
+}
+.playback-bar button {
+  font-family: 'Outfit', sans-serif;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); padding: 5px 11px; border-radius: 6px;
+  cursor: pointer; font-size: 0.78rem; transition: all 0.15s;
+}
+.playback-bar button:hover { background: var(--accent); border-color: var(--accent); }
+.playback-bar button:disabled { opacity: 0.4; pointer-events: none; }
+
+.learn-panel {
+  border-left: 1px solid var(--border);
+  overflow-y: auto; max-height: calc(100vh - 57px);
+}
+.page { display: none; }
+.page.active { display: block; }
+.method-header { padding: 32px 36px; border-bottom: 1px solid var(--border); }
+.method-header h2 { font-size: 1.8rem; font-weight: 900; letter-spacing: -1px; margin-bottom: 6px; }
+.method-header p { color: var(--text-dim); font-size: 0.95rem; line-height: 1.6; }
+
+.step-card {
+  padding: 20px 36px; border-bottom: 1px solid var(--border);
+  display: flex; gap: 18px; align-items: flex-start; transition: all 0.2s;
+}
+.step-card:hover { background: var(--surface); }
+.step-number {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem; font-weight: 700; color: var(--accent);
+  background: rgba(255, 107, 53, 0.1);
+  border: 1px solid rgba(255, 107, 53, 0.2);
+  padding: 5px 9px; border-radius: 8px;
+  min-width: 32px; text-align: center; flex-shrink: 0;
+}
+.step-info h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 3px; }
+.step-info > p { color: var(--text-dim); font-size: 0.82rem; line-height: 1.5; }
+
+.algo-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 16px; margin-top: 10px; transition: all 0.2s;
+}
+.algo-card:hover { border-color: var(--accent); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+.algo-card .algo-name { font-weight: 700; font-size: 0.9rem; margin-bottom: 3px; color: var(--accent2); }
+.algo-card .algo-desc { font-size: 0.78rem; color: var(--text-dim); margin-bottom: 10px; }
+.algo-moves { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
+.algo-moves .move {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem; font-weight: 600;
+  padding: 3px 8px; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: 5px; color: var(--text);
+}
+.play-btn {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.78rem; font-weight: 600;
+  padding: 7px 14px; border: 1px solid var(--accent);
+  background: transparent; color: var(--accent);
+  border-radius: 8px; cursor: pointer; transition: all 0.2s;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.play-btn:hover { background: var(--accent); color: #fff; }
+.play-btn svg { width: 12px; height: 12px; }
+
+.algo-section { padding: 20px 36px; border-bottom: 1px solid var(--border); }
+.algo-section h3 {
+  font-size: 1.1rem; font-weight: 700; margin-bottom: 14px;
+  display: flex; align-items: center; gap: 10px;
+}
+.algo-section h3 .badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem; font-weight: 600; padding: 2px 7px;
+  border-radius: 20px; background: rgba(46, 196, 182, 0.1);
+  color: var(--green); border: 1px solid rgba(46, 196, 182, 0.2);
+}
+
+.notation-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 10px; padding: 20px 36px;
+}
+.notation-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 18px; cursor: pointer;
+  transition: all 0.2s; text-align: center;
+}
+.notation-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.notation-card .symbol {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.8rem; font-weight: 700; color: var(--accent); margin-bottom: 3px;
+}
+.notation-card .label { font-size: 0.82rem; color: var(--text-dim); }
+
+.timer-display { padding: 50px 36px; text-align: center; }
+.timer-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 4.5rem; font-weight: 700; letter-spacing: -2px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  margin-bottom: 6px;
+}
+.timer-ms {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.8rem; color: var(--text-dim); margin-bottom: 32px;
+}
+.timer-controls { display: flex; gap: 12px; justify-content: center; margin-bottom: 36px; }
+.timer-btn {
+  font-family: 'Outfit', sans-serif; font-size: 1rem; font-weight: 700;
+  padding: 12px 28px; border: none; border-radius: 12px; cursor: pointer; transition: all 0.2s;
+}
+.timer-btn.start { background: var(--accent); color: #fff; box-shadow: 0 4px 20px var(--accent-glow); }
+.timer-btn.start:hover { transform: translateY(-2px); box-shadow: 0 6px 24px var(--accent-glow); }
+.timer-btn.reset { background: var(--surface); color: var(--text-dim); border: 1px solid var(--border); }
+.timer-btn.reset:hover { color: var(--text); border-color: var(--text-dim); }
+.times-list { padding: 0 36px 36px; }
+.times-list h3 { font-size: 1rem; font-weight: 700; margin-bottom: 14px; color: var(--text-dim); }
+.time-entry {
+  display: flex; justify-content: space-between;
+  padding: 10px 14px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 8px;
+  margin-bottom: 6px; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;
+}
+.time-entry .rank { color: var(--text-dim); }
+.time-entry .time-val { color: var(--accent); font-weight: 700; }
+
+@media (max-width: 900px) {
+  .app { grid-template-columns: 1fr; }
+  .cube-panel { padding: 20px 16px; min-height: 420px; }
+  .learn-panel { border-left: none; border-top: 1px solid var(--border); max-height: none; }
+  header { padding: 12px 16px; flex-direction: column; gap: 10px; }
+  .method-header, .algo-section, .notation-grid, .times-list, .step-card { padding-left: 16px; padding-right: 16px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <h1>CubeForge</h1>
+  </div>
+  <nav>
+    <button class="active" data-tab="learn">Learn</button>
+    <button data-tab="algorithms">Algorithms</button>
+    <button data-tab="notation">Notation</button>
+    <button data-tab="timer">Timer</button>
+  </nav>
+</header>
+
+<div class="app">
+  <div class="cube-panel">
+    <canvas id="cubeCanvas"></canvas>
+    <div class="move-controls" id="moveControls">
+      <button class="move-btn" onclick="execMove('R')">R</button>
+      <button class="move-btn" onclick="execMove('R\'')">R'</button>
+      <button class="move-btn" onclick="execMove('L')">L</button>
+      <button class="move-btn" onclick="execMove('L\'')">L'</button>
+      <button class="move-btn" onclick="execMove('U')">U</button>
+      <button class="move-btn" onclick="execMove('U\'')">U'</button>
+      <button class="move-btn" onclick="execMove('D')">D</button>
+      <button class="move-btn" onclick="execMove('D\'')">D'</button>
+      <button class="move-btn" onclick="execMove('F')">F</button>
+      <button class="move-btn" onclick="execMove('F\'')">F'</button>
+      <button class="move-btn" onclick="execMove('B')">B</button>
+      <button class="move-btn" onclick="execMove('B\'')">B'</button>
+      <button class="move-btn action-btn" onclick="resetCube()">Reset</button>
+      <button class="move-btn action-btn" onclick="scrambleCube()">Scramble</button>
+    </div>
+    <div class="info-bar" id="scrambleBar" style="display:none">
+      <div class="label">Scramble</div>
+      <div class="content" id="scrambleMoves"></div>
+    </div>
+    <div class="playback-bar" id="playbackBar">
+      <div class="step-display" id="playbackStep">—</div>
+      <button onclick="pbPrev()" id="pbPrevBtn">◀ Prev</button>
+      <button onclick="pbNext()" id="pbNextBtn">Next ▶</button>
+      <button onclick="pbStop()">✕</button>
+    </div>
+  </div>
+
+  <div class="learn-panel">
+    <div class="page active" id="page-learn">
+      <div class="method-header">
+        <h2>Beginner's Method</h2>
+        <p>Learn to solve the Rubik's Cube step by step. Click "Animate" to watch each algorithm with real 3D face turns.</p>
+      </div>
+      <div id="stepsList"></div>
+    </div>
+    <div class="page" id="page-algorithms">
+      <div class="method-header">
+        <h2>Algorithm Library</h2>
+        <p>Essential algorithms organized by category. Animate them on the 3D cube.</p>
+      </div>
+      <div id="algoSections"></div>
+    </div>
+    <div class="page" id="page-notation">
+      <div class="method-header">
+        <h2>Move Notation</h2>
+        <p>Standard notation. Each letter is a face. Alone = clockwise 90°. Apostrophe = counter-clockwise. Click any to see it animated.</p>
+      </div>
+      <div class="notation-grid" id="notationGrid"></div>
+    </div>
+    <div class="page" id="page-timer">
+      <div class="timer-display">
+        <div class="timer-time" id="timerTime">0:00</div>
+        <div class="timer-ms" id="timerMs">.000</div>
+        <div class="timer-controls">
+          <button class="timer-btn start" id="timerBtn" onclick="toggleTimer()">Start</button>
+          <button class="timer-btn reset" onclick="resetTimerUI()">Reset</button>
+        </div>
+      </div>
+      <div class="times-list">
+        <h3>Recent Solves</h3>
+        <div id="timesList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════
+// THREE.JS RUBIK'S CUBE — REAL ANIMATED FACE TURNS
+// ═══════════════════════════════════════════════════════
+
+const FACE_COLORS = {
+  front:  0xe63946,  // +Z red
+  back:   0xff8c42,  // -Z orange
+  left:   0x2ec4b6,  // -X green
+  right:  0x4361ee,  // +X blue
+  up:     0xffffff,  // +Y white
+  down:   0xffd60a,  // -Y yellow
+  inner:  0x111118,
+};
+
+const canvas = document.getElementById('cubeCanvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
+
+const ambient = new THREE.AmbientLight(0xffffff, 0.55);
+scene.add(ambient);
+const dir1 = new THREE.DirectionalLight(0xffffff, 0.75);
+dir1.position.set(5, 10, 7); scene.add(dir1);
+const dir2 = new THREE.DirectionalLight(0xffffff, 0.25);
+dir2.position.set(-5, -3, -5); scene.add(dir2);
+
+// ─── Cubie building ───
+const GAP = 0.08;
+const CUBIE = 0.9;
+const STICKER = 0.82;
+const STICKER_RAISE = 0.005;
+
+// We build each cubie as a group: a black body + up to 6 colored sticker planes
+const cubeGroup = new THREE.Group();
+scene.add(cubeGroup);
+
+let allCubies = []; // { group, x, y, z }
+
+function stickerColor(x, y, z, face) {
+  if (face === '+x' && x === 1) return FACE_COLORS.right;
+  if (face === '-x' && x === -1) return FACE_COLORS.left;
+  if (face === '+y' && y === 1) return FACE_COLORS.up;
+  if (face === '-y' && y === -1) return FACE_COLORS.down;
+  if (face === '+z' && z === 1) return FACE_COLORS.front;
+  if (face === '-z' && z === -1) return FACE_COLORS.back;
+  return null;
+}
+
+function buildCubie(x, y, z) {
+  const group = new THREE.Group();
+
+  // Black body
+  const bodyGeo = new THREE.BoxGeometry(CUBIE, CUBIE, CUBIE);
+  const bodyMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.85 });
+  const body = new THREE.Mesh(bodyGeo, bodyMat);
+  group.add(body);
+
+  // Stickers
+  const stickerGeo = new THREE.PlaneGeometry(STICKER, STICKER);
+  const faces = [
+    { name: '+x', pos: [CUBIE/2 + STICKER_RAISE, 0, 0], rot: [0, Math.PI/2, 0] },
+    { name: '-x', pos: [-CUBIE/2 - STICKER_RAISE, 0, 0], rot: [0, -Math.PI/2, 0] },
+    { name: '+y', pos: [0, CUBIE/2 + STICKER_RAISE, 0], rot: [-Math.PI/2, 0, 0] },
+    { name: '-y', pos: [0, -CUBIE/2 - STICKER_RAISE, 0], rot: [Math.PI/2, 0, 0] },
+    { name: '+z', pos: [0, 0, CUBIE/2 + STICKER_RAISE], rot: [0, 0, 0] },
+    { name: '-z', pos: [0, 0, -CUBIE/2 - STICKER_RAISE], rot: [0, Math.PI, 0] },
+  ];
+
+  faces.forEach(f => {
+    const col = stickerColor(x, y, z, f.name);
+    if (col === null) return;
+    const mat = new THREE.MeshStandardMaterial({
+      color: col, roughness: 0.25, metalness: 0.05,
+    });
+    const mesh = new THREE.Mesh(stickerGeo, mat);
+    mesh.position.set(...f.pos);
+    mesh.rotation.set(...f.rot);
+    group.add(mesh);
+  });
+
+  const spacing = 1 + GAP;
+  group.position.set(x * spacing, y * spacing, z * spacing);
+  return group;
+}
+
+function buildFullCube() {
+  // Clear
+  allCubies.forEach(c => cubeGroup.remove(c.group));
+  allCubies = [];
+
+  for (let x = -1; x <= 1; x++) {
+    for (let y = -1; y <= 1; y++) {
+      for (let z = -1; z <= 1; z++) {
+        const g = buildCubie(x, y, z);
+        cubeGroup.add(g);
+        allCubies.push({ group: g, x, y, z });
+      }
+    }
+  }
+}
+
+buildFullCube();
+
+// ─── Resize ───
+function resize() {
+  const panel = canvas.parentElement;
+  const size = Math.min(panel.clientWidth - 48, 400);
+  canvas.style.width = size + 'px';
+  canvas.style.height = size + 'px';
+  renderer.setSize(size, size);
+  camera.aspect = 1;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ─── Orbit ───
+let orbiting = false, orbitStart = { x: 0, y: 0 };
+let spherical = { theta: Math.PI / 4.2, phi: Math.PI / 7 };
+const ORBIT_R = 7.8;
+
+function updateCam() {
+  const { theta, phi } = spherical;
+  camera.position.set(
+    ORBIT_R * Math.cos(phi) * Math.sin(theta),
+    ORBIT_R * Math.sin(phi),
+    ORBIT_R * Math.cos(phi) * Math.cos(theta)
+  );
+  camera.lookAt(0, 0, 0);
+}
+updateCam();
+
+canvas.addEventListener('mousedown', e => { orbiting = true; orbitStart = { x: e.clientX, y: e.clientY }; });
+canvas.addEventListener('touchstart', e => { orbiting = true; orbitStart = { x: e.touches[0].clientX, y: e.touches[0].clientY }; e.preventDefault(); }, { passive: false });
+window.addEventListener('mousemove', e => {
+  if (!orbiting) return;
+  spherical.theta -= (e.clientX - orbitStart.x) * 0.007;
+  spherical.phi += (e.clientY - orbitStart.y) * 0.007;
+  spherical.phi = Math.max(-1.2, Math.min(1.2, spherical.phi));
+  orbitStart = { x: e.clientX, y: e.clientY };
+  updateCam();
+});
+window.addEventListener('touchmove', e => {
+  if (!orbiting) return;
+  spherical.theta -= (e.touches[0].clientX - orbitStart.x) * 0.007;
+  spherical.phi += (e.touches[0].clientY - orbitStart.y) * 0.007;
+  spherical.phi = Math.max(-1.2, Math.min(1.2, spherical.phi));
+  orbitStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  updateCam();
+}, { passive: false });
+window.addEventListener('mouseup', () => orbiting = false);
+window.addEventListener('touchend', () => orbiting = false);
+
+// ─── Move definitions ───
+const HALF = Math.PI / 2;
+const MOVE_DEFS = {
+  'R':  { axis: 'x', layer:  1, angle: -HALF },
+  "R'": { axis: 'x', layer:  1, angle:  HALF },
+  'R2': { axis: 'x', layer:  1, angle: -Math.PI },
+  'L':  { axis: 'x', layer: -1, angle:  HALF },
+  "L'": { axis: 'x', layer: -1, angle: -HALF },
+  'L2': { axis: 'x', layer: -1, angle:  Math.PI },
+  'U':  { axis: 'y', layer:  1, angle: -HALF },
+  "U'": { axis: 'y', layer:  1, angle:  HALF },
+  'U2': { axis: 'y', layer:  1, angle: -Math.PI },
+  'D':  { axis: 'y', layer: -1, angle:  HALF },
+  "D'": { axis: 'y', layer: -1, angle: -HALF },
+  'D2': { axis: 'y', layer: -1, angle:  Math.PI },
+  'F':  { axis: 'z', layer:  1, angle: -HALF },
+  "F'": { axis: 'z', layer:  1, angle:  HALF },
+  'F2': { axis: 'z', layer:  1, angle: -Math.PI },
+  'B':  { axis: 'z', layer: -1, angle:  HALF },
+  "B'": { axis: 'z', layer: -1, angle: -HALF },
+  'B2': { axis: 'z', layer: -1, angle:  Math.PI },
+};
+
+const AXIS_VEC = {
+  x: new THREE.Vector3(1, 0, 0),
+  y: new THREE.Vector3(0, 1, 0),
+  z: new THREE.Vector3(0, 0, 1),
+};
+
+// ─── Animation state ───
+let currentAnim = null; // { pivot, layer, axisVec, targetAngle, currentAngle, duration, elapsed, resolve }
+const ANIM_DUR = 0.28;
+
+function animateMove(moveName) {
+  return new Promise(resolve => {
+    const def = MOVE_DEFS[moveName];
+    if (!def) { resolve(); return; }
+
+    const spacing = 1 + GAP;
+    const layer = allCubies.filter(c => c[def.axis] === def.layer);
+    const pivot = new THREE.Object3D();
+    cubeGroup.add(pivot);
+
+    layer.forEach(c => {
+      // Reparent cubie group under pivot
+      cubeGroup.remove(c.group);
+      pivot.add(c.group);
+    });
+
+    currentAnim = {
+      pivot,
+      layer,
+      axisVec: AXIS_VEC[def.axis],
+      axisName: def.axis,
+      targetAngle: def.angle,
+      elapsed: 0,
+      duration: Math.abs(def.angle) > HALF + 0.1 ? ANIM_DUR * 1.5 : ANIM_DUR,
+      resolve,
+    };
+  });
+}
+
+function finishAnim() {
+  if (!currentAnim) return;
+  const { pivot, layer, axisVec, axisName, targetAngle, resolve } = currentAnim;
+
+  // Snap the pivot rotation to exact target
+  pivot.rotation.set(0, 0, 0);
+  pivot.rotateOnWorldAxis(axisVec, targetAngle);
+  pivot.updateMatrixWorld(true);
+
+  const spacing = 1 + GAP;
+
+  layer.forEach(c => {
+    // Get world position/quaternion
+    const wp = new THREE.Vector3();
+    const wq = new THREE.Quaternion();
+    const ws = new THREE.Vector3();
+    c.group.getWorldPosition(wp);
+    c.group.getWorldQuaternion(wq);
+    c.group.getWorldScale(ws);
+
+    // Remove from pivot
+    pivot.remove(c.group);
+
+    // Convert world to cubeGroup local
+    const invMat = new THREE.Matrix4().copy(cubeGroup.matrixWorld).invert();
+    const localPos = wp.clone().applyMatrix4(invMat);
+
+    c.group.position.copy(localPos);
+    // For quaternion, remove cubeGroup's world rotation
+    const cgWorldQ = new THREE.Quaternion();
+    cubeGroup.getWorldQuaternion(cgWorldQ);
+    const cgInvQ = cgWorldQ.clone().invert();
+    c.group.quaternion.copy(cgInvQ.multiply(wq));
+
+    cubeGroup.add(c.group);
+
+    // Update logical position (snap)
+    c.x = Math.round(localPos.x / spacing);
+    c.y = Math.round(localPos.y / spacing);
+    c.z = Math.round(localPos.z / spacing);
+
+    // Snap visual position
+    c.group.position.set(c.x * spacing, c.y * spacing, c.z * spacing);
+  });
+
+  cubeGroup.remove(pivot);
+  currentAnim = null;
+  resolve();
+}
+
+// ─── Render loop ───
+const clock = new THREE.Clock();
+function renderLoop() {
+  requestAnimationFrame(renderLoop);
+
+  if (currentAnim) {
+    const dt = Math.min(clock.getDelta(), 0.05);
+    currentAnim.elapsed += dt;
+    let t = Math.min(currentAnim.elapsed / currentAnim.duration, 1);
+    // Cubic ease in-out
+    const ease = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3) / 2;
+    const angle = currentAnim.targetAngle * ease;
+
+    currentAnim.pivot.rotation.set(0, 0, 0);
+    currentAnim.pivot.rotateOnWorldAxis(currentAnim.axisVec, angle);
+
+    if (t >= 1) {
+      finishAnim();
+    }
+  }
+
+  renderer.render(scene, camera);
+}
+clock.getDelta();
+renderLoop();
+
+// ─── Move queue ───
+let moveQueue = [];
+let processing = false;
+
+async function processQueue() {
+  if (processing) return;
+  processing = true;
+  setDisabled(true);
+
+  while (moveQueue.length > 0) {
+    const m = moveQueue.shift();
+    await animateMove(m);
+  }
+
+  setDisabled(false);
+  processing = false;
+  if (pbMoves.length > 0) updatePbDisplay();
+}
+
+function execMove(m) {
+  moveQueue.push(m);
+  processQueue();
+}
+
+function setDisabled(d) {
+  document.querySelectorAll('.move-btn').forEach(b => b.disabled = d);
+  document.querySelectorAll('.play-btn').forEach(b => b.disabled = d);
+  document.querySelectorAll('.notation-card').forEach(b => b.style.pointerEvents = d ? 'none' : 'auto');
+}
+
+// ─── Reset / Scramble ───
+function resetCube() {
+  moveQueue = [];
+  if (currentAnim) finishAnim();
+  buildFullCube();
+  document.getElementById('scrambleBar').style.display = 'none';
+}
+
+function scrambleCube() {
+  resetCube();
+  const moves = ['R',"R'",'L',"L'",'U',"U'",'D',"D'",'F',"F'",'B',"B'",'R2','L2','U2','D2','F2','B2'];
+  const scramble = [];
+  let last = '';
+  for (let i = 0; i < 20; i++) {
+    let m;
+    do { m = moves[Math.floor(Math.random() * moves.length)]; } while (m[0] === last[0]);
+    scramble.push(m); last = m;
+  }
+  document.getElementById('scrambleBar').style.display = 'block';
+  document.getElementById('scrambleMoves').textContent = scramble.join('  ');
+  scramble.forEach(m => moveQueue.push(m));
+  processQueue();
+}
+
+// ─── Playback ───
+let pbMoves = [];
+let pbIndex = 0;
+
+function playAlgorithm(movesStr) {
+  resetCube();
+  pbMoves = movesStr.split(/\s+/).filter(Boolean);
+  pbIndex = 0;
+  document.getElementById('playbackBar').classList.add('visible');
+  updatePbDisplay();
+}
+
+function updatePbDisplay() {
+  const d = document.getElementById('playbackStep');
+  d.innerHTML = `${pbIndex}/${pbMoves.length} &nbsp; ` + pbMoves.map((m, i) => {
+    if (i < pbIndex) return `<span style="color:var(--text-dim)">${m}</span>`;
+    if (i === pbIndex) return `<span style="color:var(--accent);text-decoration:underline">${m}</span>`;
+    return m;
+  }).join(' ');
+  document.getElementById('pbPrevBtn').disabled = pbIndex <= 0 || processing;
+  document.getElementById('pbNextBtn').disabled = pbIndex >= pbMoves.length || processing;
+}
+
+function pbNext() {
+  if (pbIndex >= pbMoves.length || processing) return;
+  moveQueue.push(pbMoves[pbIndex]);
+  pbIndex++;
+  processQueue();
+}
+
+function pbPrev() {
+  if (pbIndex <= 0 || processing) return;
+  pbIndex--;
+  resetCube();
+  for (let i = 0; i < pbIndex; i++) moveQueue.push(pbMoves[i]);
+  processQueue();
+}
+
+function pbStop() {
+  pbMoves = []; pbIndex = 0;
+  document.getElementById('playbackBar').classList.remove('visible');
+}
+
+// ─── Data ───
+const STEPS = [
+  { name: 'White Cross', desc: 'Form a white "+" on top with edge colors matching adjacent centers.', tips: 'Find white edges. Bring each to the top aligned with its matching center color.',
+    algos: [{ name: 'Edge Flip', moves: "F U R U' R' F'", desc: 'Flip a misoriented edge' }]
+  },
+  { name: 'White Corners', desc: 'Complete the white face by inserting corners with correct side colors.', tips: 'Find white corners in the bottom layer. Position below the target slot and repeat.',
+    algos: [
+      { name: 'Right Insert', moves: "R U R' U'", desc: 'Insert corner from bottom-right' },
+      { name: 'Left Insert', moves: "L' U' L U", desc: 'Insert corner from bottom-left' }
+    ]
+  },
+  { name: 'Second Layer', desc: 'Insert middle layer edges (pieces without yellow).', tips: 'White on bottom. Find non-yellow edges on top, align with center, then insert.',
+    algos: [
+      { name: 'Insert Right', moves: "U R U' R' U' F' U F", desc: 'Top edge into right slot' },
+      { name: 'Insert Left', moves: "U' L' U L U F U' F'", desc: 'Top edge into left slot' }
+    ]
+  },
+  { name: 'Yellow Cross', desc: 'Form a yellow "+" on top (edges only).', tips: 'You may see a dot, L, or line. Apply the algorithm to progress to a full cross.',
+    algos: [{ name: 'Yellow Cross', moves: "F R U R' U' F'", desc: 'Dot → L → Line → Cross' }]
+  },
+  { name: 'Yellow Face', desc: 'Orient all yellow corners so the entire top is yellow.', tips: 'Hold an unsolved corner at front-right. Repeat, adjusting U between applications.',
+    algos: [
+      { name: 'Sune', moves: "R U R' U R U2 R'", desc: 'Classic corner orientation' },
+      { name: 'Anti-Sune', moves: "R U2 R' U' R U' R'", desc: 'Mirror Sune' }
+    ]
+  },
+  { name: 'Position Corners', desc: 'Move last layer corners to their correct positions.', tips: 'Find a face where both top corners match. Place it at the back and apply.',
+    algos: [
+      { name: 'T-Perm', moves: "R U R' U' R' F R2 U' R' U' R U R' F'", desc: 'Adjacent corner swap' },
+      { name: 'Y-Perm', moves: "F R U' R' U' R U R' F' R U R' U' R' F R F'", desc: 'Diagonal corner swap' }
+    ]
+  },
+  { name: 'Position Edges', desc: 'Cycle the final edges to complete the solve!', tips: 'If one face is complete, place it at the back and apply a U-perm.',
+    algos: [
+      { name: 'Ua-Perm', moves: "R U' R U R U R U' R' U' R2", desc: '3-edge cycle CCW' },
+      { name: 'Ub-Perm', moves: "R2 U R U R' U' R' U' R' U R'", desc: '3-edge cycle CW' },
+      { name: 'H-Perm', moves: "R2 U2 R U2 R2 U2 R2 U2 R U2 R2", desc: 'Opposite edge swap' }
+    ]
+  }
+];
+
+const ALGO_LIB = [
+  { title: 'OLL — Orientation', badge: '5 essential',
+    algos: [
+      { name: 'OLL Cross', moves: "F R U R' U' F'", desc: 'Create yellow cross' },
+      { name: 'Sune', moves: "R U R' U R U2 R'", desc: 'Orient corners' },
+      { name: 'Anti-Sune', moves: "R U2 R' U' R U' R'", desc: 'Mirror Sune' },
+      { name: 'Bowtie', moves: "F' r U R' U' r' F R", desc: 'Two adjacent corners' },
+      { name: 'Bruno', moves: "r U R' U' r' F R F'", desc: 'Single corner twist' }
+    ]
+  },
+  { title: 'PLL — Permutation', badge: '8 essential',
+    algos: [
+      { name: 'T-Perm', moves: "R U R' U' R' F R2 U' R' U' R U R' F'", desc: 'Adjacent corner swap' },
+      { name: 'Y-Perm', moves: "F R U' R' U' R U R' F' R U R' U' R' F R F'", desc: 'Diagonal corner swap' },
+      { name: 'Ua-Perm', moves: "R U' R U R U R U' R' U' R2", desc: '3-edge cycle CCW' },
+      { name: 'Ub-Perm', moves: "R2 U R U R' U' R' U' R' U R'", desc: '3-edge cycle CW' },
+      { name: 'H-Perm', moves: "R2 U2 R U2 R2 U2 R2 U2 R U2 R2", desc: 'Opposite edge swap' },
+      { name: 'Z-Perm', moves: "R' U' R U' R U R U' R' U R U R2 U' R'", desc: 'Adjacent edge swap' },
+      { name: 'Aa-Perm', moves: "R' F R' B2 R F' R' B2 R2", desc: 'Corner 3-cycle CW' },
+      { name: 'Ab-Perm', moves: "R2 B2 R F R' B2 R F' R", desc: 'Corner 3-cycle CCW' }
+    ]
+  },
+  { title: 'F2L — First Two Layers', badge: '4 basic',
+    algos: [
+      { name: 'Basic Right', moves: "U R U' R'", desc: 'Pair to right slot' },
+      { name: 'Basic Left', moves: "U' L' U L", desc: 'Pair to left slot' },
+      { name: 'Split Right', moves: "U R U' R' U' F' U F", desc: 'Edge on top → right' },
+      { name: 'Split Left', moves: "U' L' U L U F U' F'", desc: 'Edge on top → left' }
+    ]
+  }
+];
+
+const NOTATIONS = [
+  { s: 'R', l: 'Right clockwise' }, { s: "R'", l: 'Right counter-CW' },
+  { s: 'L', l: 'Left clockwise' }, { s: "L'", l: 'Left counter-CW' },
+  { s: 'U', l: 'Up clockwise' }, { s: "U'", l: 'Up counter-CW' },
+  { s: 'D', l: 'Down clockwise' }, { s: "D'", l: 'Down counter-CW' },
+  { s: 'F', l: 'Front clockwise' }, { s: "F'", l: 'Front counter-CW' },
+  { s: 'B', l: 'Back clockwise' }, { s: "B'", l: 'Back counter-CW' },
+];
+
+// ─── Render pages ───
+function renderLearn() {
+  const el = document.getElementById('stepsList');
+  el.innerHTML = STEPS.map((step, i) => `
+    <div class="step-card">
+      <div class="step-number">${i+1}</div>
+      <div class="step-info">
+        <h3>${step.name}</h3>
+        <p>${step.desc}</p>
+        <p style="margin-top:6px;color:var(--green);font-size:0.78rem">${step.tips}</p>
+        ${step.algos.map(a => `
+          <div class="algo-card">
+            <div class="algo-name">${a.name}</div>
+            <div class="algo-desc">${a.desc}</div>
+            <div class="algo-moves">${a.moves.split(' ').map(m=>`<span class="move">${m}</span>`).join('')}</div>
+            <button class="play-btn" onclick="event.stopPropagation();playAlgorithm('${a.moves}')">
+              <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg> Animate
+            </button>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderAlgos() {
+  document.getElementById('algoSections').innerHTML = ALGO_LIB.map(sec => `
+    <div class="algo-section">
+      <h3>${sec.title} <span class="badge">${sec.badge}</span></h3>
+      ${sec.algos.map(a => `
+        <div class="algo-card">
+          <div class="algo-name">${a.name}</div>
+          <div class="algo-desc">${a.desc}</div>
+          <div class="algo-moves">${a.moves.split(' ').map(m=>`<span class="move">${m}</span>`).join('')}</div>
+          <button class="play-btn" onclick="playAlgorithm('${a.moves}')">
+            <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg> Animate
+          </button>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+function renderNotation() {
+  document.getElementById('notationGrid').innerHTML = NOTATIONS.map(n => `
+    <div class="notation-card" onclick="execMove('${n.s}')">
+      <div class="symbol">${n.s}</div>
+      <div class="label">${n.l}</div>
+    </div>
+  `).join('');
+}
+
+// ─── Nav ───
+document.querySelectorAll('nav button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ─── Timer ───
+let timerOn = false, timerStart = 0, timerInt = null, solves = [];
+function toggleTimer() {
+  const btn = document.getElementById('timerBtn');
+  if (!timerOn) {
+    timerStart = Date.now(); timerOn = true; btn.textContent = 'Stop';
+    timerInt = setInterval(() => {
+      const e = Date.now() - timerStart;
+      const s = Math.floor(e/1000), m = Math.floor(s/60), ms = e%1000;
+      document.getElementById('timerTime').textContent = `${m}:${String(s%60).padStart(2,'0')}`;
+      document.getElementById('timerMs').textContent = `.${String(ms).padStart(3,'0')}`;
+    }, 10);
+  } else {
+    timerOn = false; clearInterval(timerInt); btn.textContent = 'Start';
+    solves.unshift(Date.now() - timerStart);
+    if (solves.length > 12) solves.pop();
+    document.getElementById('timesList').innerHTML = solves.map((t,i) =>
+      `<div class="time-entry"><span class="rank">#${i+1}</span><span class="time-val">${(t/1000).toFixed(3)}s</span></div>`
+    ).join('');
+  }
+}
+function resetTimerUI() {
+  timerOn = false; clearInterval(timerInt);
+  document.getElementById('timerBtn').textContent = 'Start';
+  document.getElementById('timerTime').textContent = '0:00';
+  document.getElementById('timerMs').textContent = '.000';
+}
+
+// ─── Init ───
+renderLearn();
+renderAlgos();
+renderNotation();
+</script>
+</body>
+</html>
